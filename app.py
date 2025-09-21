@@ -69,24 +69,22 @@ else:
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
     
     if uploaded_file:
-        img = Image.open(uploaded_file).convert("RGB")
-        st.image(img, caption="Uploaded Image", use_column_width=True)
-        
-        img = image.load_img(uploaded_file, target_size=(128, 128))  # match your model input
-        img_array = image.img_to_array(img)
-        img_array = tf.expand_dims(img_array, axis=0)  # shape becomes (1, 128, 128, 3)
+    img = Image.open(uploaded_file).convert("RGB")
+    st.image(img, caption="Uploaded Image", use_column_width=True)
+    
+    img = image.load_img(uploaded_file, target_size=(128, 128))  # match your model input
+    img_array = image.img_to_array(img)
+    img_array = tf.expand_dims(img_array, axis=0)  # shape becomes (1, 128, 128, 3)
 
+    with st.spinner("Analyzing... 🔍"):
+        prediction = model.predict(img_array)[0]  # flatten to 1D
 
+        st.write("Raw prediction:", prediction.tolist())
 
-        
-        with st.spinner("Analyzing... 🔍"):
-            prediction = model.predict(img_array)
+        top3_idx = prediction.argsort()[-3:][::-1]
 
-            st.write("Raw prediction:", prediction)
+    st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
+    for i in top3_idx:
+        st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
+        st.progress(int(prediction[i]*100))
 
-            top3_idx = prediction.argsort()[-3:][::-1]
-            
-        st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
-        for i in top3_idx:
-            st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
-            st.progress(int(prediction[i]*100))
