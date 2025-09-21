@@ -9,7 +9,9 @@ import time
 # ----------------------------
 # Load model & classes
 # ----------------------------
-model = load_model("models/animal_classifier.keras")
+# Load model for inference only (skip optimizer)
+model = load_model("models/animal_classifier.keras", compile=False)
+
 with open("models/model.json", "r") as f:
     classes = json.load(f)
 
