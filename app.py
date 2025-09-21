@@ -29,9 +29,9 @@ model = load_model()
 classes = load_classes()
 
 # ---------------------------- Google OAuth Config ----------------------------
-CLIENT_ID = st.secrets.google_oauth.client_id
-CLIENT_SECRET = st.secrets.google_oauth.client_secret
-REDIRECT_URI = st.secrets.google_oauth.redirect_uri
+CLIENT_ID = st.secrets["google_oauth"]["client_id"]
+CLIENT_SECRET = st.secrets["google_oauth"]["client_secret"]
+REDIRECT_URI = st.secrets["google_oauth"]["redirect_uri"]
 SCOPES = "openid email profile"
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URI = "https://oauth2.googleapis.com/token"
