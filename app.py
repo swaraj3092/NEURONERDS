@@ -1,31 +1,22 @@
 import streamlit as st
-from tensorflow.keras.models import load_model
-import numpy as np
 from PIL import Image
-import json
-from tensorflow.keras.preprocessing import image
-
-
-
+import numpy as np
 import tensorflow as tf
 from keras.layers import TFSMLayer
+from tensorflow.keras.preprocessing import image
+import json
 
+# ----------------------------
+# Load TFSMLayer model
+# ----------------------------
 model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
 
-
-
-
-
-
-
-# Verify model summary
-
-
+# Load class names
 with open("models/model.json", "r") as f:
     classes = json.load(f)
 
 # ----------------------------
-# Page config
+# Streamlit page config
 # ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide")
 
@@ -58,89 +49,50 @@ if not st.session_state.logged_in:
         if username == "bpa" and password == "batch":  # simple authentication
             st.session_state.logged_in = True
             st.success("Login Successful! Redirecting...")
-            st.rerun()
-
+            st.experimental_rerun()
         else:
             st.error("Invalid credentials. Try again.")
 
+# ----------------------------
+# Main App
+# ----------------------------
 else:
-    # ----------------------------
-    # Main App
-    # ----------------------------
     st.markdown("<h1 style='text-align:center;'>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center;'>Upload an image to see the AI prediction instantly!</p>", unsafe_allow_html=True)
     
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
     
-    """if uploaded_file:
+    if uploaded_file:
+        # Display image
         img = Image.open(uploaded_file).convert("RGB")
         st.image(img, caption="Uploaded Image", use_column_width=True)
 
-        img = image.load_img(uploaded_file, target_size=(128, 128))
-        img_array = image.img_to_array(img)
-        img_array = tf.expand_dims(img_array, axis=0)
+        # Preprocess image
+        img = img.resize((128, 128))
+        img_array = np.array(img, dtype=np.float32) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)  # (1,128,128,3)
 
         with st.spinner("Analyzing... 🔍"):
-            prediction = model.predict(img_array)[0]
+            # Call TFSMLayer
+            prediction_output = model(tf.constant(img_array, dtype=tf.float32))
 
-            st.write("Raw prediction:", prediction.tolist())
-
-            top3_idx = prediction.argsort()[-3:][::-1]
-
-        st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
-        for i in top3_idx:
-            st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
-            st.progress(int(prediction[i]*100))
-
-    """
-
-if uploaded_file:
-    # Display uploaded image
-    img = Image.open(uploaded_file).convert("RGB")
-    st.image(img, caption="Uploaded Image", use_column_width=True)
-
-    # Preprocess image
-    img = img.resize((128, 128))
-    img_array = np.array(img, dtype=np.float32) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)  # shape: (1,128,128,3)
-
-    with st.spinner("Analyzing... 🔍"):
-        # Call TFSMLayer
-        prediction_output = model(tf.constant(img_array, dtype=tf.float32))
-
-        # Inspect type
-        st.write("Prediction output type:", type(prediction_output))
-
-        # Extract prediction depending on type
-        if isinstance(prediction_output, tf.Tensor):
-            prediction = prediction_output.numpy()[0]  # normal tensor
-        elif isinstance(prediction_output, (list, tuple)):
-            # Check if first element is tensor
-            if isinstance(prediction_output[0], tf.Tensor):
+            # Safely extract prediction
+            if isinstance(prediction_output, tf.Tensor):
+                prediction = prediction_output.numpy()[0]
+            elif isinstance(prediction_output, (list, tuple)) and isinstance(prediction_output[0], tf.Tensor):
                 prediction = prediction_output[0].numpy()[0]
+            elif isinstance(prediction_output, dict):
+                key = list(prediction_output.keys())[0]
+                prediction = prediction_output[key].numpy()[0]
             else:
-                # Convert to numpy if possible
-                prediction = np.array(prediction_output[0])
-        elif isinstance(prediction_output, dict):
-            # If TFSMLayer returned a dict (common for TF Serving)
-            key = list(prediction_output.keys())[0]
-            prediction = prediction_output[key].numpy()[0]
-        else:
-            st.error(f"Cannot handle prediction output of type {type(prediction_output)}")
-            prediction = None
+                st.error(f"Cannot handle prediction output of type {type(prediction_output)}")
+                prediction = None
 
-        if prediction is not None:
-            st.write("Raw prediction:", prediction.tolist())
+            if prediction is not None:
+                # Top 3 predictions
+                top3_idx = prediction.argsort()[-3:][::-1]
 
-            # Top 3 predictions
-            top3_idx = prediction.argsort()[-3:][::-1]
-
-            st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
-            for i in top3_idx:
-                st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
-                st.progress(int(prediction[i]*100))
-
-
-
-
-
+                st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
+                for i in top3_idx:
+                    st.markdown(f"**{classes[i]}:** {prediction[i]*100:.2f}%")
+                    st.progress(int(prediction[i]*100))
