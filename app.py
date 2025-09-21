@@ -13,7 +13,6 @@ model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_
 
 
 # Verify model summary
-model.summary()
 
 
 with open("models/model.json", "r") as f:
