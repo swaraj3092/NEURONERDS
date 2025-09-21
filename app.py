@@ -6,8 +6,6 @@ from keras.layers import TFSMLayer
 import json
 import requests
 import urllib.parse
-from google_auth_oauthlib.flow import Flow
-import os
 
 # ---------------------------- Page Config ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
@@ -30,10 +28,13 @@ def load_classes():
 model = load_model()
 classes = load_classes()
 
-# ---------------------------- Google OAuth Config ----------------------------
+# ----------------------------
+# Google OAuth Configuration
+# ----------------------------
 CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
-CLIENT_SECRET = "YOUR_CLIENT_SECRET_HERE"
+CLIENT_SECRET = "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"
 REDIRECT_URI = "https://neuronerds.streamlit.app/"
+
 SCOPES = "openid email profile"
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URI = "https://oauth2.googleapis.com/token"
@@ -78,9 +79,10 @@ if not st.session_state.logged_in:
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
         # Handle OAuth redirect
-        if "code" in st.query_params:
+        query_params = st.query_params
+        if "code" in query_params:
             try:
-                code = st.query_params["code"][0]
+                code = query_params.get("code")
                 data = {
                     "code": code,
                     "client_id": CLIENT_ID,
