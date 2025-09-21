@@ -1,16 +1,18 @@
 import streamlit as st
 from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
 import numpy as np
 from PIL import Image
 import json
-import time
 
-# ----------------------------
-# Load model & classes
-# ----------------------------
-# Load model for inference only (skip optimizer)
-model = load_model("models/animal_classifier.keras", compile=False)
+
+import tensorflow as tf
+
+# Load the saved model
+model = tf.keras.models.load_model("models/animal_classifier.keras")
+
+# Verify model summary
+model.summary()
+
 
 with open("models/model.json", "r") as f:
     classes = json.load(f)
@@ -40,7 +42,7 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    st.markdown("<h1 style='text-align:center; animation: fadeIn 2s;'>🔒 BPA Login</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;'>🔒 BPA Login</h1>", unsafe_allow_html=True)
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     login_btn = st.button("Login")
@@ -63,15 +65,13 @@ else:
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
     
     if uploaded_file:
-        img = Image.open(uploaded_file)
+        img = Image.open(uploaded_file).convert("RGB")
         st.image(img, caption="Uploaded Image", use_column_width=True)
         
-        # ----------------------------
-        # Resize to model input size
-        # ----------------------------
-        img = img.resize((128, 128))  # ✅ Changed from 224x224 to 128x128
+        img = img.resize((128,128))
         img_array = image.img_to_array(img)
-        img_array = np.expand_dims(img_array, axis=0)/255.0
+        img_array = np.expand_dims(img_array, axis=0) / 255.0
+
         
         with st.spinner("Analyzing... 🔍"):
             prediction = model.predict(img_array)[0]
