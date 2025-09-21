@@ -10,12 +10,22 @@ import json
 # ----------------------------
 model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
 
-# Load class names
+# Load class names safely
 with open("models/model.json", "r") as f:
-    classes_dict = json.load(f)
+    classes_data = json.load(f)
 
-# Convert dict to ordered list
-classes = [classes_dict[str(k)] for k in range(len(classes_dict))]
+# Convert to list safely
+if isinstance(classes_data, dict):
+    try:
+        # Try numeric string keys
+        classes = [classes_data[str(k)] for k in range(len(classes_data))]
+    except KeyError:
+        # Fallback: take values in arbitrary order
+        classes = list(classes_data.values())
+elif isinstance(classes_data, list):
+    classes = classes_data
+else:
+    raise ValueError("Unknown format for model.json")
 
 # ----------------------------
 # Streamlit page config
