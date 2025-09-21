@@ -102,30 +102,44 @@ if uploaded_file:
     # Preprocess image
     img = img.resize((128, 128))
     img_array = np.array(img, dtype=np.float32) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)  # shape (1,128,128,3)
+    img_array = np.expand_dims(img_array, axis=0)  # shape: (1,128,128,3)
 
     with st.spinner("Analyzing... 🔍"):
-        # Call TFSMLayer directly
+        # Call TFSMLayer
         prediction_output = model(tf.constant(img_array, dtype=tf.float32))
 
-        # Extract prediction safely
+        # Inspect type
+        st.write("Prediction output type:", type(prediction_output))
+
+        # Extract prediction depending on type
         if isinstance(prediction_output, tf.Tensor):
-            prediction = prediction_output.numpy()[0]  # normal TF tensor
-        elif isinstance(prediction_output, (list, tuple)) and isinstance(prediction_output[0], tf.Tensor):
-            prediction = prediction_output[0].numpy()[0]
+            prediction = prediction_output.numpy()[0]  # normal tensor
+        elif isinstance(prediction_output, (list, tuple)):
+            # Check if first element is tensor
+            if isinstance(prediction_output[0], tf.Tensor):
+                prediction = prediction_output[0].numpy()[0]
+            else:
+                # Convert to numpy if possible
+                prediction = np.array(prediction_output[0])
+        elif isinstance(prediction_output, dict):
+            # If TFSMLayer returned a dict (common for TF Serving)
+            key = list(prediction_output.keys())[0]
+            prediction = prediction_output[key].numpy()[0]
         else:
-            # Fallback: try converting first element to numpy
-            prediction = np.array(prediction_output[0])
+            st.error(f"Cannot handle prediction output of type {type(prediction_output)}")
+            prediction = None
 
-        st.write("Raw prediction:", prediction.tolist())
+        if prediction is not None:
+            st.write("Raw prediction:", prediction.tolist())
 
-        # Get top 3 predictions
-        top3_idx = prediction.argsort()[-3:][::-1]
+            # Top 3 predictions
+            top3_idx = prediction.argsort()[-3:][::-1]
 
-    st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
-    for i in top3_idx:
-        st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
-        st.progress(int(prediction[i]*100))
+            st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
+            for i in top3_idx:
+                st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
+                st.progress(int(prediction[i]*100))
+
 
 
 
