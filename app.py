@@ -2,24 +2,30 @@ import streamlit as st
 from PIL import Image
 import numpy as np
 import tensorflow as tf
+from keras.layers import TFSMLayer
 import json
 
 # ----------------------------
-# Load Keras SavedModel
+# Load TFSMLayer model
 # ----------------------------
-model = tf.keras.models.load_model("models/animal_classifier_savedmodel")
+model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
 
 # Load class names safely
 with open("models/model.json", "r") as f:
     classes_data = json.load(f)
 
-# Generate class list
+# Convert to list safely
 if isinstance(classes_data, dict):
-    classes = list(classes_data.values())
+    try:
+        # Try numeric string keys
+        classes = [classes_data[str(k)] for k in range(len(classes_data))]
+    except KeyError:
+        # Fallback: take values in arbitrary order
+        classes = list(classes_data.values())
 elif isinstance(classes_data, list):
     classes = classes_data
 else:
-    classes = []
+    raise ValueError("Unknown format for model.json")
 
 # ----------------------------
 # Streamlit page config
@@ -52,7 +58,7 @@ if not st.session_state.logged_in:
     login_btn = st.button("Login")
     
     if login_btn:
-        if username == "bpa" and password == "batch":
+        if username == "bpa" and password == "batch":  # simple authentication
             st.session_state.logged_in = True
             st.success("Login Successful! Redirecting...")
             st.experimental_rerun()
@@ -79,24 +85,34 @@ else:
         img_array = np.expand_dims(img_array, axis=0)  # shape (1,128,128,3)
 
         with st.spinner("Analyzing... 🔍"):
-            prediction = model.predict(img_array)[0]  # first batch
+            # Call TFSMLayer
+            prediction_output = model(tf.constant(img_array, dtype=tf.float32))
 
-            # Generate class names from prediction length if needed
-            if len(classes) != len(prediction):
-                classes = [f"class_{i}" for i in range(len(prediction))]
+            # Safely extract prediction
+            if isinstance(prediction_output, tf.Tensor):
+                prediction = prediction_output.numpy()[0]
+            elif isinstance(prediction_output, (list, tuple)) and isinstance(prediction_output[0], tf.Tensor):
+                prediction = prediction_output[0].numpy()[0]
+            elif isinstance(prediction_output, dict):
+                key = list(prediction_output.keys())[0]
+                prediction = prediction_output[key].numpy()[0]
+            else:
+                st.error(f"Cannot handle prediction output of type {type(prediction_output)}")
+                prediction = None
 
-            # Top 3 predictions
-            top3_idx = prediction.argsort()[-3:][::-1]
+            if prediction is not None:
+                # Ensure classes length matches prediction length
+                if len(classes) != len(prediction):
+                    st.warning(f"Warning: classes length ({len(classes)}) != prediction length ({len(prediction)}). Adjusting.")
+                    if len(classes) < len(prediction):
+                        classes = [f"class_{i}" for i in range(len(prediction))]
+                    else:
+                        classes = classes[:len(prediction)]
 
-            st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
-            for i in top3_idx:
-                st.markdown(f"**{classes[i]}:** {prediction[i]*100:.2f}%")
-                st.progress(int(prediction[i]*100))
+                # Top 3 predictions
+                top3_idx = prediction.argsort()[-3:][::-1]
 
-            # Optional: Show full predictions
-            show_all = st.checkbox("Show full class predictions")
-            if show_all:
-                st.markdown("<h2>All Class Predictions:</h2>", unsafe_allow_html=True)
-                sorted_idx = np.argsort(prediction)[::-1]
-                for i in sorted_idx:
-                    st.markdown(f"**{classes[i]}:** {prediction[i]*100:.4f}%")
+                st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
+                for i in top3_idx:
+                    st.markdown(f"{classes[i]}:** {prediction[i]*100:.2f}%")
+                    st.progress(int(prediction[i]*100))
