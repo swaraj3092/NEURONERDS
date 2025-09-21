@@ -4,7 +4,6 @@ from tensorflow.keras.preprocessing import image
 import numpy as np
 from PIL import Image
 import json
-import time
 
 # ----------------------------
 # Load model & classes
@@ -32,11 +31,16 @@ h1,h2,h3 { color: #2c3e50; }
 """, unsafe_allow_html=True)
 
 # ----------------------------
-# Login Page
+# Session state for login
 # ----------------------------
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
+if 'rerun_needed' not in st.session_state:
+    st.session_state.rerun_needed = False
 
+# ----------------------------
+# Login Function
+# ----------------------------
 def login():
     st.markdown("<h1 style='text-align:center;'>🔒 BPA Login</h1>", unsafe_allow_html=True)
     username = st.text_input("Username")
@@ -47,51 +51,40 @@ def login():
         if username == "bpa" and password == "batch":
             st.session_state.logged_in = True
             st.success("Login Successful! Redirecting...")
-            time.sleep(1)
-            st.experimental_rerun()
+            st.session_state.rerun_needed = True  # flag for safe rerun
         else:
             st.error("Invalid credentials. Try again.")
 
 # ----------------------------
-# Image Preprocessing
+# Run login or main app
 # ----------------------------
-def preprocess_image(img):
-    # Ensure 3 channels (RGB)
-    if img.mode != "RGB":
-        img = img.convert("RGB")
-    img = img.resize((224,224))
-    img_array = image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)/255.0
-    return img_array.astype(np.float32)
-
-# ----------------------------
-# Main App
-# ----------------------------
-def main_app():
+if not st.session_state.logged_in:
+    login()
+    if st.session_state.rerun_needed:
+        st.session_state.rerun_needed = False
+        st.experimental_rerun()
+else:
+    # ----------------------------
+    # Main App
+    # ----------------------------
     st.markdown("<h1 style='text-align:center;'>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center;'>Upload an image to see the AI prediction instantly!</p>", unsafe_allow_html=True)
     
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
     
     if uploaded_file:
-        img = Image.open(uploaded_file)
+        img = Image.open(uploaded_file).convert("RGB")  # ensure RGB
         st.image(img, caption="Uploaded Image", use_column_width=True)
         
-        img_array = preprocess_image(img)
+        img = img.resize((224,224))
+        img_array = image.img_to_array(img)
+        img_array = np.expand_dims(img_array, axis=0)/255.0
         
         with st.spinner("Analyzing... 🔍"):
             prediction = model.predict(img_array)[0]
             top3_idx = prediction.argsort()[-3:][::-1]
-        
+            
         st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
         for i in top3_idx:
             st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
             st.progress(int(prediction[i]*100))
-
-# ----------------------------
-# Run
-# ----------------------------
-if not st.session_state.logged_in:
-    login()
-else:
-    main_app()
