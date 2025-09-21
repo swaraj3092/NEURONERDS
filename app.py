@@ -9,9 +9,7 @@ from io import BytesIO
 # ----------------------------
 # Page Config
 # ----------------------------
-# The page_icon now uses the supported .png format.
-# Ensure 'cow_logo.png' is in the same directory as your script.
-st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow_logo.png")
+st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.webp")
 
 # ----------------------------
 # Caching Functions
@@ -113,7 +111,8 @@ def login_form():
         login_btn = st.button("Login")
 
         if login_btn:
-            if username == "bpa" and password == "batch":
+            # Updated username and password
+            if username == "user" and password == "demo123":
                 st.session_state.logged_in = True
                 st.success("Login Successful!")
                 st.rerun()
@@ -192,7 +191,11 @@ else:
     with tab2:
         st.markdown("<h2>📄 Model Information</h2>", unsafe_allow_html=True)
         st.info("""
-            This classifier uses a **Convolutional Neural Network (CNN)**.             The model was trained on a custom dataset of animal images.
+            This classifier uses a **Convolutional Neural Network (CNN)**. 
+
+[Image of a convolutional neural network architecture]
+
+            The model was trained on a custom dataset of animal images.
         """)
         st.write("### Key Metrics")
         st.markdown("""
