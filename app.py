@@ -49,38 +49,6 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
-if "just_logged_in" not in st.session_state:
-    st.session_state.just_logged_in = False
-
-# ---------------------------- GOOGLE LOGIN HANDLER ----------------------------
-if "code" in st.query_params and not st.session_state.just_logged_in:
-    try:
-        code = st.query_params["code"][0]
-        data = {
-            "code": code,
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-            "redirect_uri": REDIRECT_URI,
-            "grant_type": "authorization_code"
-        }
-        token_resp = requests.post(TOKEN_URI, data=data).json()
-        access_token = token_resp.get("access_token")
-        if access_token:
-            user_info = requests.get(
-                USER_INFO_URI,
-                params={"alt": "json"},
-                headers={"Authorization": f"Bearer {access_token}"}
-            ).json()
-            st.session_state.logged_in = True
-            st.session_state.user_name = user_info.get("name", "User")
-            st.session_state.just_logged_in = True
-
-            # Clear OAuth code param to prevent loop
-            st.experimental_set_query_params()
-        else:
-            st.error("Failed to login. Please try again.")
-    except Exception as e:
-        st.error(f"An error occurred during authentication: {e}")
 
 # ---------------------------- CSS Styling ----------------------------
 st.markdown("""
@@ -104,8 +72,58 @@ div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px soli
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------- LOGIN PAGE ----------------------------
-if not st.session_state.logged_in:
+# ---------------------------- FUNCTIONS ----------------------------
+def show_main_app():
+    st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
+    
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.session_state.user_name = "User"
+        return
+    
+    st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
+    
+    input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
+    input_file = None
+    if input_method == "📁 Upload Image":
+        input_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
+    elif input_method == "📸 Use Camera":
+        input_file = st.camera_input("Capture an image")
+
+    if input_file:
+        img = Image.open(input_file).convert("RGB")
+        st.image(img, use_container_width=True)
+        img_array = np.array(img.resize((128, 128)), dtype=np.float32) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)
+
+        with st.spinner("Analyzing... 🔍"):
+            try:
+                pred = model(tf.constant(img_array, dtype=tf.float32))
+                if isinstance(pred, dict) and "dense_1" in pred:
+                    pred = pred["dense_1"].numpy()[0]
+                else:
+                    pred = pred.numpy()[0]
+
+                top3 = np.argsort(pred)[-3:][::-1]
+                cols = st.columns(3)
+                for col, i in zip(cols, top3):
+                    with col:
+                        st.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
+
+                if st.checkbox("Show all predictions"):
+                    st.markdown("---")
+                    left_col, right_col = st.columns(2)
+                    sorted_idx = np.argsort(pred)[::-1]
+                    half = len(sorted_idx)//2
+                    for i in sorted_idx[:half]:
+                        left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+                    for i in sorted_idx[half:]:
+                        right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+
+def show_login_page():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
@@ -113,7 +131,6 @@ if not st.session_state.logged_in:
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
-        # Google Login Button (same tab)
         auth_params = {
             "client_id": CLIENT_ID,
             "redirect_uri": REDIRECT_URI,
@@ -123,25 +140,23 @@ if not st.session_state.logged_in:
             "prompt": "consent"
         }
         auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
-        st.markdown(f"""
-        <form action="{auth_url}" method="get">
-            <button type="submit" style="
+        st.markdown(f'''
+        <a href="{auth_url}">
+            <button style="
                 width:100%; padding:12px; font-weight:bold; border-radius:12px;
                 background-color:#4285F4; color:white; border:none; cursor:pointer;
                 ">Continue with Google 🚀</button>
-        </form>
-        """, unsafe_allow_html=True)
+        </a>
+        ''', unsafe_allow_html=True)
 
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
 
-        # Demo login
         email = st.text_input("Email", placeholder="user@example.com")
         password = st.text_input("Password", type="password")
         if st.button("Login Demo"):
             if email == "user" and password == "demo123":
                 st.session_state.logged_in = True
                 st.session_state.user_name = "Demo User"
-                st.session_state.just_logged_in = True
             else:
                 st.error("Invalid demo credentials.")
 
@@ -152,65 +167,37 @@ if not st.session_state.logged_in:
             st.markdown("<p style='text-align:right;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------------------- MAIN APP ----------------------------
-st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
 
-if st.button("Logout"):
-    st.session_state.logged_in = False
-    st.experimental_rerun()
-
-st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
-
-input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
-input_file = None
-
-if input_method == "📁 Upload Image":
-    input_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
-elif input_method == "📸 Use Camera":
-    input_file = st.camera_input("Capture an image")
-
-if input_file:
-    img = Image.open(input_file).convert("RGB")
-    st.image(img, use_container_width=True)
-
-    # Preprocess image
-    img_array = np.array(img.resize((128, 128)), dtype=np.float32) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)  # Shape: (1, 128, 128, 3)
-
-    with st.spinner("Analyzing... 🔍"):
+# ---------------------------- RENDER PAGES ----------------------------
+if st.session_state.logged_in:
+    show_main_app()
+else:
+    # Handle Google OAuth login code
+    if "code" in st.query_params:
         try:
-            pred = model(tf.constant(img_array, dtype=tf.float32))
-
-            # Handle TFSMLayer output: sometimes it's a dict
-            if isinstance(pred, dict):
-                # If only one output, get its first key
-                first_key = list(pred.keys())[0]
-                pred = pred[first_key].numpy()[0]
+            code = st.query_params["code"][0]
+            data = {
+                "code": code,
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+                "redirect_uri": REDIRECT_URI,
+                "grant_type": "authorization_code"
+            }
+            token_resp = requests.post(TOKEN_URI, data=data).json()
+            access_token = token_resp.get("access_token")
+            if access_token:
+                user_info = requests.get(
+                    USER_INFO_URI,
+                    params={"alt": "json"},
+                    headers={"Authorization": f"Bearer {access_token}"}
+                ).json()
+                st.session_state.logged_in = True
+                st.session_state.user_name = user_info.get("name", "User")
             else:
-                pred = pred.numpy()[0]
-
-            # Ensure prediction is float32/float64
-            pred = np.array(pred, dtype=np.float32)
-
-            top3 = np.argsort(pred)[-3:][::-1]
-
-            # Display top 3 predictions
-            cols = st.columns(3)
-            for col, i in zip(cols, top3):
-                with col:
-                    st.metric(label=classes[int(i)], value=f"{float(pred[int(i)]*100):.2f}%")
-
-            # Optionally show all predictions
-            if st.checkbox("Show all predictions"):
-                st.markdown("---")
-                left_col, right_col = st.columns(2)
-                sorted_idx = np.argsort(pred)[::-1]
-                half = len(sorted_idx)//2
-                for i in sorted_idx[:half]:
-                    left_col.markdown(f"**{classes[int(i)]}:** {float(pred[int(i)]*100):.4f}%")
-                for i in sorted_idx[half:]:
-                    right_col.markdown(f"**{classes[int(i)]}:** {float(pred[int(i)]*100):.4f}%")
-
+                st.error("Failed to login. Please try again.")
         except Exception as e:
-            st.error(f"Error in prediction: {e}")
+            st.error(f"An error occurred during authentication: {e}")
 
+    # Show login page if still not logged in
+    if not st.session_state.logged_in:
+        show_login_page()
