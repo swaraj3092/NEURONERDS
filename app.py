@@ -125,7 +125,8 @@ classes = load_classes()
 # ---------------------------- Google OAuth Config ----------------------------
 CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
 CLIENT_SECRET = "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"
-REDIRECT_URI = "https://neuronerds.streamlit.app/"   # ✅ Updated without trailing slash
+REDIRECT_URI = "https://neuronerds.streamlit.app/"
+ 
 
 SCOPES = "openid email profile"
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
