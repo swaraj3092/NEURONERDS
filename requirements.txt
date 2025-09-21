@@ -3,6 +3,6 @@ keras==3.10.0
 streamlit==1.49.1
 Pillow
 numpy
+requests
 google-auth
 google-auth-oauthlib
-requests
