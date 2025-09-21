@@ -37,17 +37,27 @@ model = load_model()
 classes = load_classes()
 
 # ----------------------------
-# Modern Light CSS Styling
+# Modern Light CSS Styling (Adjusted for centering and dark background on login)
 # ----------------------------
 st.markdown("""
 <style>
+/* Overall page background */
 body {
-    background-color: #f0f2f6; /* Light gray background */
-    color: #1e1e2f; /* Dark text for contrast */
+    background-color: #1a1a2e; /* Dark background for the entire page */
+    color: #f0f2f6; /* Light text for contrast */
     font-family: 'Arial', sans-serif;
 }
+/* Main content background if logged in */
+.main .block-container {
+    background-color: #f0f2f6; /* Light background for the main app content */
+    color: #1e1e2f;
+    padding: 2rem; /* Add some padding */
+    border-radius: 10px; /* Rounded corners for the main app container */
+}
+
+
 h1, h2, h3 {
-    color: #1e1e2f; /* Dark header text */
+    color: #f0f2f6; /* Light header text for login page */
     text-align: center;
     text-shadow: none;
 }
@@ -91,26 +101,30 @@ h1, h2, h3 {
     margin-right: 10px;
 }
 .login-container {
-    background: #ffffff; /* White background for the card */
+    background: #1a1a2e; /* Dark background for the login card itself, matching page */
     border-radius: 20px;
     padding: 40px;
     margin: 50px auto;
     width: 400px;
-    box-shadow: 0px 8px 20px rgba(0,0,0,0.1);
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.3); /* Darker shadow */
     text-align: center;
+    color: #f0f2f6; /* Light text for login card */
 }
-/* CSS for the image: makes it circular, small, and centered */
+
+/* Specific CSS to center the image and make it circular */
+/* The stImage class targets the container div Streamlit wraps the image in */
 .stImage {
-    display: flex; /* Use flexbox to center content */
+    display: flex; /* Use flexbox for centering */
     justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically (if height allows) */
+    align-items: center; /* Center vertically if space allows */
     margin-bottom: 20px;
 }
 
-.stImage > img {
+.stImage img {
     border-radius: 50%; /* Makes the image circular */
     object-fit: cover; /* Ensures the image covers the circular area */
     border: 3px solid #3b5998; /* Optional: adds a border around the circle */
+    display: block; /* Important for centering the image itself within its flex container */
 }
 
 .or-separator {
@@ -118,12 +132,13 @@ h1, h2, h3 {
     align-items: center;
     text-align: center;
     margin: 20px 0;
+    color: #ccc; /* Lighter color for OR text on dark background */
 }
 .or-separator::before,
 .or-separator::after {
     content: '';
     flex: 1;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid #444; /* Darker border for separator lines */
 }
 .or-separator:not(:empty)::before {
     margin-right: .25em;
@@ -133,9 +148,20 @@ h1, h2, h3 {
 }
 .stTextInput > div > div > input {
     border-radius: 8px;
+    background-color: #2a2a3e; /* Darker input background */
+    color: #f0f2f6; /* Light text in input */
+    border: 1px solid #444; /* Darker border */
 }
 .stTextInput > label {
     font-weight: normal; /* Normal font weight for field labels */
+    color: #f0f2f6; /* Light label text */
+}
+a {
+    color: #87CEEB; /* Lighter blue for links */
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -148,16 +174,18 @@ if 'logged_in' not in st.session_state:
 
 if not st.session_state.logged_in:
     # This is the LOGIN UI which will be displayed first
-    with st.container():
+    # Centered container for the login form elements
+    col1, col2, col3 = st.columns([1, 2, 1]) # Use columns to push the login card to center
+    with col2: # All login elements will be inside the middle column
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         
         # Logo: circular, smaller, and centered.
         # Ensure cow.png is in the same directory as your script.
-        st.image("cow.png", width=100) # use_column_width is now removed from here
+        st.image("cow.png", width=100) # This image will now be centered and circular via CSS
         
         # Welcome Text
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #555;'>Sign in to continue</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
         # Google Button (Styling)
         st.markdown('<div class="google-btn"> <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_Google_g_darkmode_2020.svg" width="20"> Continue with Google</div>', unsafe_allow_html=True)
@@ -173,10 +201,10 @@ if not st.session_state.logged_in:
         login_btn = st.button("Sign in", use_container_width=True)
         
         # Links
-        col1, col2 = st.columns(2)
-        with col1:
+        col_link1, col_link2 = st.columns(2) # Using separate columns for links to align them
+        with col_link1:
             st.markdown("<p style='text-align: left;'><a href='#'>Forgot password?</a></p>", unsafe_allow_html=True)
-        with col2:
+        with col_link2:
             st.markdown("<p style='text-align: right;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
 
         # Login validation logic
