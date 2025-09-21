@@ -16,6 +16,110 @@ import requests
 import urllib.parse
 
 
+# ---------------------------- STYLING ----------------------------
+st.markdown("""
+<style>
+/* ---------- Body and container ---------- */
+body {
+    background: linear-gradient(to right, #1a1a2e, #162447);
+    color: #f0f2f6;
+    font-family: 'Arial', sans-serif;
+}
+.main .block-container {
+    background-color: rgba(255,255,255,0.05);
+    padding: 2rem;
+    border-radius: 15px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+
+/* ---------- Headings ---------- */
+h1, h2, h3 {
+    color: #f0f2f6;
+    text-align: center;
+    animation: fadeIn 1s ease-in-out;
+}
+
+/* ---------- Buttons ---------- */
+.stButton>button {
+    background: linear-gradient(90deg, #ff758c, #ff7eb3);
+    color: white;
+    font-weight: bold;
+    border-radius: 12px;
+    padding: 12px 28px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+.stButton>button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+}
+
+/* ---------- Google Button ---------- */
+a>button {
+    background: linear-gradient(90deg, #4285F4, #34A853);
+    transition: all 0.3s ease;
+}
+a>button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+}
+
+/* ---------- Inputs ---------- */
+.stTextInput>div>div>input {
+    border-radius: 10px;
+    background-color: #2a2a3e;
+    color: #f0f2f6;
+    border: 1px solid #444;
+    padding: 8px;
+}
+.stTextInput>label {
+    color: #f0f2f6;
+    font-weight: 500;
+}
+
+/* ---------- Separator ---------- */
+.or-separator {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 20px 0;
+    color: #ccc;
+}
+.or-separator::before, .or-separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #444;
+}
+.or-separator:not(:empty)::before { margin-right: .25em; }
+.or-separator:not(:empty)::after { margin-left: .25em; }
+
+/* ---------- Logo Animation ---------- */
+div[data-testid="stImage"] img {
+    border-radius: 50%;
+    border: 3px solid #ff7eb3;
+    object-fit: cover;
+    margin: auto;
+    animation: bounce 1s infinite alternate;
+}
+
+/* ---------- Fade In Animation ---------- */
+@keyframes fadeIn {
+    from {opacity:0; transform: translateY(-20px);}
+    to {opacity:1; transform: translateY(0);}
+}
+
+/* ---------- Bounce Animation ---------- */
+@keyframes bounce {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-15px); }
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 # ---------------------------- Page Config ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
 
@@ -85,6 +189,7 @@ if "code" in st.query_params:
 
 
 # ---------------------------- CSS Styling ----------------------------
+'''
 st.markdown("""
 <style>
 body { background-color: #1a1a2e; color: #f0f2f6; font-family: 'Arial', sans-serif; }
@@ -105,7 +210,7 @@ div[data-testid="stImage"] { display: flex !important; justify-content: center !
 div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px solid #3b5998; object-fit: cover; margin: auto !important; }
 </style>
 """, unsafe_allow_html=True)
-
+'''
 # ---------------------------- LOGIN PAGE ----------------------------
 if not st.session_state.logged_in:
     st.write("")  # spacing at top
