@@ -77,7 +77,7 @@ if st.session_state.logged_in:
     input_file = uploaded_file if uploaded_file else camera_file
 
     if input_file:
-        # Display image
+        # Display image only once
         img = Image.open(input_file).convert("RGB")
         st.image(img, caption="Input Image", use_column_width=True)
 
