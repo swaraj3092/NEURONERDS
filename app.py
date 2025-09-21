@@ -188,29 +188,6 @@ if "code" in st.query_params:
 
 
 
-# ---------------------------- CSS Styling ----------------------------
-'''
-st.markdown("""
-<style>
-body { background-color: #1a1a2e; color: #f0f2f6; font-family: 'Arial', sans-serif; }
-.main .block-container { background-color: #f0f2f6; color: #1e1e2f; padding: 2rem; border-radius: 10px; }
-h1, h2, h3 { color: #f0f2f6; text-align: center; }
-.stButton>button { background-color: #3b5998; color: white; font-weight: bold; border-radius: 12px; padding: 12px 28px; transition: all 0.3s ease; border: none; }
-.stButton>button:hover { background-color: #314a79; transform: scale(1.02); }
-.login-container { background: #1a1a2e; border-radius: 20px; padding: 40px; margin: 50px auto; width: 400px; box-shadow: 0px 8px 20px rgba(0,0,0,0.3); text-align: center; color: #f0f2f6; }
-.or-separator { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #ccc; }
-.or-separator::before, .or-separator::after { content: ''; flex: 1; border-bottom: 1px solid #444; }
-.or-separator:not(:empty)::before { margin-right: .25em; }
-.or-separator:not(:empty)::after { margin-left: .25em; }
-.stTextInput > div > div > input { border-radius: 8px; background-color: #2a2a3e; color: #f0f2f6; border: 1px solid #444; }
-.stTextInput > label { font-weight: normal; color: #f0f2f6; }
-a { color: #87CEEB; text-decoration: none; }
-a:hover { text-decoration: underline; }
-div[data-testid="stImage"] { display: flex !important; justify-content: center !important; align-items: center !important; }
-div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px solid #3b5998; object-fit: cover; margin: auto !important; }
-</style>
-""", unsafe_allow_html=True)
-'''
 # ---------------------------- LOGIN PAGE ----------------------------
 if not st.session_state.logged_in:
     st.write("")  # spacing at top
