@@ -4,7 +4,6 @@ import numpy as np
 import tensorflow as tf
 from keras.layers import TFSMLayer
 import json
-from io import BytesIO
 
 # ----------------------------
 # Page Config
@@ -43,24 +42,23 @@ st.markdown("""
 <style>
 /* Overall page background */
 body {
-    background-color: #1a1a2e; /* Dark background for the entire page */
-    color: #f0f2f6; /* Light text for contrast */
+    background-color: #1a1a2e;
+    color: #f0f2f6;
     font-family: 'Arial', sans-serif;
 }
 /* Main content background if logged in */
 .main .block-container {
-    background-color: #f0f2f6; /* Light background for the main app content */
+    background-color: #f0f2f6;
     color: #1e1e2f;
-    padding: 2rem; /* Add some padding */
-    border-radius: 10px; /* Rounded corners for the main app container */
+    padding: 2rem;
+    border-radius: 10px;
 }
 h1, h2, h3 {
-    color: #f0f2f6; /* Light header text for login page */
+    color: #f0f2f6;
     text-align: center;
-    text-shadow: none;
 }
 .stButton>button {
-    background-color: #3b5998; /* A shade of blue for buttons */
+    background-color: #3b5998;
     color: white;
     font-weight: bold;
     border-radius: 12px;
@@ -99,42 +97,27 @@ h1, h2, h3 {
     margin-right: 10px;
 }
 .login-container {
-    background: #1a1a2e; /* Dark background for the login card itself, matching page */
+    background: #1a1a2e;
     border-radius: 20px;
     padding: 40px;
     margin: 50px auto;
     width: 400px;
-    box-shadow: 0px 8px 20px rgba(0,0,0,0.3); /* Darker shadow */
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.3);
     text-align: center;
-    color: #f0f2f6; /* Light text for login card */
+    color: #f0f2f6;
 }
-
-/* Specific CSS to center the image and make it circular */
-.stImage {
-    display: flex; /* Use flexbox for centering */
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically if space allows */
-    margin-bottom: 20px;
-}
-.stImage img {
-    border-radius: 50%; /* Makes the image circular */
-    object-fit: cover; /* Ensures the image covers the circular area */
-    border: 3px solid #3b5998; /* Optional: adds a border around the circle */
-    display: block; /* Important for centering the image itself within its flex container */
-}
-
 .or-separator {
     display: flex;
     align-items: center;
     text-align: center;
     margin: 20px 0;
-    color: #ccc; /* Lighter color for OR text on dark background */
+    color: #ccc;
 }
 .or-separator::before,
 .or-separator::after {
     content: '';
     flex: 1;
-    border-bottom: 1px solid #444; /* Darker border for separator lines */
+    border-bottom: 1px solid #444;
 }
 .or-separator:not(:empty)::before {
     margin-right: .25em;
@@ -144,16 +127,16 @@ h1, h2, h3 {
 }
 .stTextInput > div > div > input {
     border-radius: 8px;
-    background-color: #2a2a3e; /* Darker input background */
-    color: #f0f2f6; /* Light text in input */
-    border: 1px solid #444; /* Darker border */
+    background-color: #2a2a3e;
+    color: #f0f2f6;
+    border: 1px solid #444;
 }
 .stTextInput > label {
-    font-weight: normal; /* Normal font weight for field labels */
-    color: #f0f2f6; /* Light label text */
+    font-weight: normal;
+    color: #f0f2f6;
 }
 a {
-    color: #87CEEB; /* Lighter blue for links */
+    color: #87CEEB;
     text-decoration: none;
 }
 a:hover {
@@ -174,23 +157,28 @@ if not st.session_state.logged_in:
     with col2:
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         
-        # Position the Welcome Text at the top
+        # Title
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
-        # Position the logo directly below the text
-        st.image("cow.png", width=100)
-        
-        # Sign in to continue text
-        st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
-        # Google Button (Styling)
+        # Center logo (cow image)
+        st.markdown(
+            """
+            <div style="display: flex; justify-content: center; align-items: center; margin: 20px 0;">
+                <img src="cow.png" alt="logo" style="width:100px; height:100px; border-radius:50%; border:3px solid #3b5998;">
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Google Button
         st.markdown('<div class="google-btn"> <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_Google_g_darkmode_2020.svg" width="20"> Continue with Google</div>', unsafe_allow_html=True)
         
         # OR Separator
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
         
         # Login Form Fields
-        email = st.text_input("Email", placeholder="you@example.com")
-        password = st.text_input("Password", type="password")
+        email = st.text_input("Email", placeholder="you@example.com", label_visibility="collapsed")
+        password = st.text_input("Password", type="password", label_visibility="collapsed")
         
         # Login Button
         login_btn = st.button("Sign in", use_container_width=True)
@@ -214,18 +202,16 @@ if not st.session_state.logged_in:
         st.markdown('</div>', unsafe_allow_html=True)
     
 else:
-# ----------------------------
-# This is the MAIN APP, displayed only AFTER login
-# ----------------------------
+    # ----------------------------
+    # This is the MAIN APP, displayed only AFTER login
+    # ----------------------------
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p>Choose an input method to see AI prediction instantly!</p>", unsafe_allow_html=True)
 
     tab1, tab2, tab3 = st.tabs(["📊 Classifier", "📄 Model Info", "💡 About App"])
 
     with tab1:
-        # Input choice with icons
         input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
-
         input_file = None
         if input_method == "📁 Upload Image":
             input_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
@@ -266,12 +252,8 @@ else:
                 if show_all:
                     st.markdown("---")
                     st.markdown("<h2>All Predictions:</h2>", unsafe_allow_html=True)
-                    
-                    # Create two columns for a more compact display
                     left_col, right_col = st.columns(2)
                     sorted_idx = np.argsort(prediction)[::-1]
-                    
-                    # Distribute predictions evenly
                     half = len(sorted_idx) // 2
                     for i in sorted_idx[:half]:
                         left_col.markdown(f"**{classes[i]}:** {prediction[i]*100:.4f}%")
