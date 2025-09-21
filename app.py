@@ -11,7 +11,9 @@ import tensorflow as tf
 from keras.layers import TFSMLayer
 
 # Load SavedModel as inference-only model
-model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
+#model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
+model = tf.keras.models.load_model("models/animal_classifier_savedmodel", custom_objects={'TFSMLayer': TFSMLayer})
+
 
 
 
