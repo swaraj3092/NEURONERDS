@@ -3,7 +3,6 @@ from PIL import Image
 import numpy as np
 import tensorflow as tf
 from keras.layers import TFSMLayer
-from tensorflow.keras.preprocessing import image
 import json
 
 # ----------------------------
@@ -13,7 +12,10 @@ model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_
 
 # Load class names
 with open("models/model.json", "r") as f:
-    classes = json.load(f)
+    classes_dict = json.load(f)
+
+# Convert dict to ordered list
+classes = [classes_dict[str(k)] for k in range(len(classes_dict))]
 
 # ----------------------------
 # Streamlit page config
@@ -70,7 +72,7 @@ else:
         # Preprocess image
         img = img.resize((128, 128))
         img_array = np.array(img, dtype=np.float32) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)  # (1,128,128,3)
+        img_array = np.expand_dims(img_array, axis=0)  # shape (1,128,128,3)
 
         with st.spinner("Analyzing... 🔍"):
             # Call TFSMLayer
