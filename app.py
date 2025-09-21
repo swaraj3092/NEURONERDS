@@ -2,179 +2,96 @@ import streamlit as st
 from PIL import Image
 import numpy as np
 import tensorflow as tf
-from keras.layers import TFSMLayer
 import json
+from google_auth_oauthlib.flow import Flow
+from google.oauth2 import id_token
+import google.auth.transport.requests
 import requests
-import urllib.parse
 
-# ---------------------------- Page Config ----------------------------
-st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
+# ----------------------------
+# OAuth Config (from secrets)
+# ----------------------------
+CLIENT_ID = st.secrets.google_oauth.client_id
+CLIENT_SECRET = st.secrets.google_oauth.client_secret
+REDIRECT_URI = st.secrets.google_oauth.redirect_uri
 
-# ---------------------------- Caching Functions ----------------------------
-@st.cache_resource
-def load_model():
-    return TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
+# ----------------------------
+# Model Load
+# ----------------------------
+model = tf.keras.models.load_model("models/animal_classifier.keras")
 
-@st.cache_data
-def load_classes():
-    try:
-        with open("models/model.json", "r") as f:
-            classes_dict = json.load(f)
-        return [classes_dict[str(k)] for k in range(len(classes_dict))]
-    except FileNotFoundError:
-        st.error("Class names file not found. Please ensure 'models/model.json' exists.")
-        return []
+# ----------------------------
+# Page Config
+# ----------------------------
+st.set_page_config(page_title="NeuroNerds Animal Classifier", page_icon="🐾", layout="centered")
 
-model = load_model()
-classes = load_classes()
+# ----------------------------
+# Google Login UI
+# ----------------------------
+if "user" not in st.session_state:
+    st.title("🔐 Welcome to NeuroNerds")
+    st.markdown(
+        """
+        <div style="text-align:center;">
+            <h3 style="color:#4CAF50;">Login to Continue</h3>
+            <p>Please sign in with your Google account to use the animal classifier.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-# ---------------------------- Google OAuth Config ----------------------------
-CLIENT_ID = st.secrets["google_oauth"]["client_id"]
-CLIENT_SECRET = st.secrets["google_oauth"]["client_secret"]
-REDIRECT_URI = st.secrets["google_oauth"]["redirect_uri"]
-SCOPES = "openid email profile"
-AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
-TOKEN_URI = "https://oauth2.googleapis.com/token"
-USER_INFO_URI = "https://www.googleapis.com/oauth2/v1/userinfo"
+    google_login_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={CLIENT_ID}&response_type=code"
+        f"&scope=openid%20email%20profile"
+        f"&redirect_uri={REDIRECT_URI}"
+    )
 
-# ---------------------------- Session State ----------------------------
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+    st.markdown(
+        f"""
+        <div style="text-align:center;">
+            <a href="{google_login_url}" target="_self">
+                <button style="
+                    background-color:#4285F4;
+                    color:white;
+                    font-size:18px;
+                    padding:10px 20px;
+                    border:none;
+                    border-radius:8px;
+                    cursor:pointer;
+                ">
+                    Continue with Google 🚀
+                </button>
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    st.stop()
 
-# ---------------------------- CSS Styling ----------------------------
-st.markdown("""
-<style>
-body { background-color: #1a1a2e; color: #f0f2f6; font-family: 'Arial', sans-serif; }
-.main .block-container { background-color: #f0f2f6; color: #1e1e2f; padding: 2rem; border-radius: 10px; }
-h1, h2, h3 { color: #f0f2f6; text-align: center; }
-.stButton>button { background-color: #3b5998; color: white; font-weight: bold; border-radius: 12px; padding: 12px 28px; transition: all 0.3s ease; border: none; }
-.stButton>button:hover { background-color: #314a79; transform: scale(1.02); }
-.google-btn { width: 100%; display: flex; align-items: center; justify-content: center; padding: 10px; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; background-color: white; color: #1e1e2f; font-weight: bold; text-decoration: none; }
-.google-btn:hover { background-color: #f1f1f1; }
-.google-btn img { margin-right: 10px; }
-.login-container { background: #1a1a2e; border-radius: 20px; padding: 40px; margin: 50px auto; width: 400px; box-shadow: 0px 8px 20px rgba(0,0,0,0.3); text-align: center; color: #f0f2f6; }
-.or-separator { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #ccc; }
-.or-separator::before, .or-separator::after { content: ''; flex: 1; border-bottom: 1px solid #444; }
-.or-separator:not(:empty)::before { margin-right: .25em; }
-.or-separator:not(:empty)::after { margin-left: .25em; }
-.stTextInput > div > div > input { border-radius: 8px; background-color: #2a2a3e; color: #f0f2f6; border: 1px solid #444; }
-.stTextInput > label { font-weight: normal; color: #f0f2f6; }
-a { color: #87CEEB; text-decoration: none; }
-a:hover { text-decoration: underline; }
-div[data-testid="stImage"] { display: flex !important; justify-content: center !important; align-items: center !important; }
-div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px solid #3b5998; object-fit: cover; margin: auto !important; }
-</style>
-""", unsafe_allow_html=True)
+# ----------------------------
+# Classifier UI (after login)
+# ----------------------------
+st.title("🐾 Animal Type Classifier")
+st.write("Upload an image of an animal and let the AI classify it!")
 
-# ---------------------------- LOGIN PAGE ----------------------------
-if not st.session_state.logged_in:
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown('<div class="login-container">', unsafe_allow_html=True)
-        st.image("cow.png", width=120)
-        st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
+uploaded_file = st.file_uploader("📷 Upload an Image", type=["jpg", "jpeg", "png"])
 
-        # Handle OAuth redirect
-        if "code" in st.query_params:
-            code = st.query_params["code"][0]
-            data = {
-                "code": code,
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
-                "redirect_uri": REDIRECT_URI,
-                "grant_type": "authorization_code"
-            }
-            try:
-                token_resp = requests.post(TOKEN_URI, data=data).json()
-                access_token = token_resp.get("access_token")
-                if access_token:
-                    user_info = requests.get(USER_INFO_URI, params={"alt":"json"},
-                                             headers={"Authorization": f"Bearer {access_token}"}).json()
-                    st.session_state.logged_in = True
-                    st.session_state.user_name = user_info.get("name","User")
-                    st.rerun()
-                else:
-                    st.error("Failed to login. Please try again.")
-            except Exception as e:
-                st.error(f"Authentication error: {e}")
+if uploaded_file is not None:
+    img = Image.open(uploaded_file).convert("RGB")
+    st.image(img, caption="Uploaded Image", use_column_width=True)
 
-        # Google login button with logo
-        auth_params = {
-            "client_id": CLIENT_ID,
-            "redirect_uri": REDIRECT_URI,
-            "response_type": "code",
-            "scope": SCOPES,
-            "access_type": "offline",
-            "prompt": "consent"
-        }
-        auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
-        st.markdown(
-            f'<a class="google-btn" href="{auth_url}" target="_self">'
-            f'<img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" width="20"/> Continue with Google</a>',
-            unsafe_allow_html=True
-        )
+    # Preprocess image
+    img_resized = img.resize((128, 128))
+    img_array = np.array(img_resized) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
 
-        st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
+    with st.spinner("🔎 Analyzing image... Please wait..."):
+        predictions = model(img_array, training=False)
+        predicted_class = int(np.argmax(predictions[0]))  # ✅ Fix np.int64 issue
 
-        # Demo login
-        email = st.text_input("Email", placeholder="user@example.com")
-        password = st.text_input("Password", type="password")
-        if st.button("Login Demo"):
-            if email=="user" and password=="demo123":
-                st.session_state.logged_in=True
-                st.session_state.user_name="Demo User"
-                st.rerun()
-            else:
-                st.error("Invalid demo credentials.")
+        # Load class names
+        with open("models/class_names.json", "r") as f:
+            class_names = json.load(f)
 
-        # Links
-        col_link1, col_link2 = st.columns(2)
-        with col_link1:
-            st.markdown("<p style='text-align:left;'><a href='#'>Forgot password?</a></p>", unsafe_allow_html=True)
-        with col_link2:
-            st.markdown("<p style='text-align:right;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-# ---------------------------- MAIN APP ----------------------------
-if st.session_state.get("logged_in"):
-    st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
-    if st.button("Logout"):
-        st.session_state.logged_in=False
-        st.rerun()
-
-    st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>")
-
-    input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
-    input_file = None
-    if input_method=="📁 Upload Image":
-        input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
-    elif input_method=="📸 Use Camera":
-        input_file = st.camera_input("Capture an image")
-    
-    if input_file:
-        img = Image.open(input_file).convert("RGB")
-        st.image(img, use_container_width=True)
-        img_array = np.array(img.resize((128,128)),dtype=np.float32)/255.0
-        img_array = np.expand_dims(img_array, axis=0)
-        with st.spinner("Analyzing... 🔍"):
-            try:
-                pred = model(tf.constant(img_array,dtype=tf.float32))
-                if isinstance(pred, dict) and "dense_1" in pred:
-                    pred = pred["dense_1"].numpy()[0]
-                top3 = np.argsort(pred)[-3:][::-1]
-                cols = st.columns(3)
-                for col,i in zip(cols,top3):
-                    with col:
-                        st.metric(label=classes[i],value=f"{pred[i]*100:.2f}%")
-                if st.checkbox("Show all predictions"):
-                    st.markdown("---")
-                    left_col,right_col=st.columns(2)
-                    sorted_idx = np.argsort(pred)[::-1]
-                    half = len(sorted_idx)//2
-                    for i in sorted_idx[:half]:
-                        left_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
-                    for i in sorted_idx[half:]:
-                        right_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
-            except Exception as e:
-                st.error(f"Error: {e}")
+    st.success(f"✅ Prediction: **{class_names[predicted_class]}**")
