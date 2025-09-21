@@ -11,8 +11,8 @@ import urllib.parse
 from google_auth_oauthlib.flow import Flow
 
 # ------------------ SUPPRESS WARNINGS ------------------
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=all, 1=INFO, 2=WARNING, 3=ERROR
-warnings.filterwarnings("ignore")  # Ignore Python warnings
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+warnings.filterwarnings("ignore")
 
 # ---------------------------- Page Config ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
@@ -56,7 +56,7 @@ if "logged_in" not in st.session_state:
 if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
 
-# ---------------------------- GOOGLE LOGIN HANDLER (Corrected) ----------------------------
+# ---------------------------- GOOGLE LOGIN HANDLER ----------------------------
 if "code" in st.query_params:
     try:
         code = st.query_params["code"][0]
