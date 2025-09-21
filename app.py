@@ -79,12 +79,9 @@ else:
             prediction = model.predict(img_array)[0]  # get first batch
 
             # Ensure classes length matches prediction length
-            if len(classes) != len(prediction):
-                st.warning(f"Warning: classes length ({len(classes)}) != prediction length ({len(prediction)}). Adjusting.")
-                if len(classes) < len(prediction):
-                    classes = [f"class_{i}" for i in range(len(prediction))]
-                else:
-                    classes = classes[:len(prediction)]
+            # Automatically create class names from prediction length
+            classes = [f"class_{i}" for i in range(len(prediction))]
+
 
             # Top 3 predictions
             top3_idx = prediction.argsort()[-3:][::-1]
