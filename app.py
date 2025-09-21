@@ -5,15 +5,12 @@ import tensorflow as tf
 from keras.layers import TFSMLayer
 import json
 from io import BytesIO
+import streamlit_authenticator as stauth  # ---------------------------- EDIT MARK: Google Login ----------------------------
 
-# ----------------------------
-# Page Config
-# ----------------------------
+# ---------------------------- Page Config ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
 
-# ----------------------------
-# Caching Functions
-# ----------------------------
+# ---------------------------- Caching Functions ----------------------------
 @st.cache_resource
 def load_model():
     """Loads the TensorFlow SavedModel into a TFSMLayer."""
@@ -30,183 +27,66 @@ def load_classes():
         st.error("Class names file not found. Please ensure 'models/model.json' exists.")
         return []
 
-# ----------------------------
-# Load assets
-# ----------------------------
+# ---------------------------- Load assets ----------------------------
 model = load_model()
 classes = load_classes()
 
-# ----------------------------
-# CSS Styling
-# ----------------------------
+# ---------------------------- CSS Styling ----------------------------
 st.markdown("""
 <style>
-/* Overall page background */
-body {
-    background-color: #1a1a2e;
-    color: #f0f2f6;
-    font-family: 'Arial', sans-serif;
-}
-/* Main content background if logged in */
-.main .block-container {
-    background-color: #f0f2f6;
-    color: #1e1e2f;
-    padding: 2rem;
-    border-radius: 10px;
-}
-h1, h2, h3 {
-    color: #f0f2f6;
-    text-align: center;
-}
-.stButton>button {
-    background-color: #3b5998;
-    color: white;
-    font-weight: bold;
-    border-radius: 12px;
-    padding: 12px 28px;
-    transition: all 0.3s ease;
-    border: none;
-}
-.stButton>button:hover {
-    background-color: #314a79;
-    transform: scale(1.02);
-}
-.stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
-    font-size: 1.2rem;
-    font-weight: bold;
-}
-/* Style for the Google Button */
-.google-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    cursor: pointer;
-    background-color: white;
-    color: #1e1e2f;
-    font-weight: bold;
-    transition: background-color 0.2s;
-}
-.google-btn:hover {
-    background-color: #f1f1f1;
-}
-.google-btn img {
-    margin-right: 10px;
-}
-/* OR Separator */
-.or-separator {
-    display: flex;
-    align-items: center;
-    text-align: center;
-    margin: 20px 0;
-    color: #ccc;
-}
-.or-separator::before,
-.or-separator::after {
-    content: '';
-    flex: 1;
-    border-bottom: 1px solid #444;
-}
-.or-separator:not(:empty)::before {
-    margin-right: .25em;
-}
-.or-separator:not(:empty)::after {
-    margin-left: .25em;
-}
-/* Input fields */
-.stTextInput > div > div > input {
-    border-radius: 8px;
-    background-color: #2a2a3e;
-    color: #f0f2f6;
-    border: 1px solid #444;
-}
-a {
-    color: #87CEEB;
-    text-decoration: none;
-}
-a:hover {
-    text-decoration: underline;
-}
-/* Force center for st.image */
-div[data-testid="stImage"] {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-}
-
-/* Make the logo circular with border */
-div[data-testid="stImage"] img {
-    border-radius: 50% !important;
-    border: 3px solid #3b5998;
-    object-fit: cover;
-    margin: auto !important;
-}
+body { background-color: #1a1a2e; color: #f0f2f6; font-family: 'Arial', sans-serif; }
+.main .block-container { background-color: #f0f2f6; color: #1e1e2f; padding: 2rem; border-radius: 10px; }
+h1, h2, h3 { color: #f0f2f6; text-align: center; }
+.stButton>button { background-color: #3b5998; color: white; font-weight: bold; border-radius: 12px; padding: 12px 28px; transition: all 0.3s ease; border: none; }
+.stButton>button:hover { background-color: #314a79; transform: scale(1.02); }
+.stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p { font-size: 1.2rem; font-weight: bold; }
+.google-btn { width: 100%; display: flex; align-items: center; justify-content: center; padding: 10px; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; background-color: white; color: #1e1e2f; font-weight: bold; transition: background-color 0.2s; }
+.google-btn:hover { background-color: #f1f1f1; }
+.google-btn img { margin-right: 10px; }
+.or-separator { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #ccc; }
+.or-separator::before, .or-separator::after { content: ''; flex: 1; border-bottom: 1px solid #444; }
+.or-separator:not(:empty)::before { margin-right: .25em; }
+.or-separator:not(:empty)::after { margin-left: .25em; }
+.stTextInput > div > div > input { border-radius: 8px; background-color: #2a2a3e; color: #f0f2f6; border: 1px solid #444; }
+a { color: #87CEEB; text-decoration: none; }
+a:hover { text-decoration: underline; }
+div[data-testid="stImage"] { display: flex !important; justify-content: center !important; align-items: center !important; }
+div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px solid #3b5998; object-fit: cover; margin: auto !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------
-# Login Page
-# ----------------------------
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
+# ---------------------------- EDIT MARK: Google Login Setup ----------------------------
+# Credentials dictionary for streamlit-authenticator demo login
+credentials = {
+    "usernames": {
+        "user": {
+            "name": "Demo User",
+            "password": stauth.Hasher(["demo123"]).generate()[0]
+        }
+    }
+}
 
-if not st.session_state.logged_in:
-    # This is the LOGIN UI which will be displayed first
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown('<div class="login-container">', unsafe_allow_html=True)
-        
-        # Title
-        st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
-        
-        # Cow logo (now perfectly centered & circular)
-        st.image("cow.png", width=120)
-        
-        # Sign in to continue text
-        st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
+authenticator = stauth.Authenticate(
+    credentials,
+    "animal_classifier_cookie",
+    "animal_classifier_signature",
+    cookie_expiry_days=1
+)
 
-        # Google Button
-        st.markdown(
-            '<div class="google-btn">'
-            '<img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_Google_g_darkmode_2020.svg" width="20">'
-            ' Continue with Google</div>',
-            unsafe_allow_html=True
-        )
-        
-        # OR Separator
-        st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
-        
-        # Login Form
-        email = st.text_input("Email", placeholder="you@example.com", label_visibility="collapsed")
-        password = st.text_input("Password", type="password", label_visibility="collapsed")
-        
-        login_btn = st.button("Sign in", use_container_width=True)
-        
-        # Links
-        col_link1, col_link2 = st.columns(2)
-        with col_link1:
-            st.markdown("<p style='text-align: left;'><a href='#'>Forgot password?</a></p>", unsafe_allow_html=True)
-        with col_link2:
-            st.markdown("<p style='text-align: right;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
+# Login form
+name, authentication_status, username = authenticator.login("Login", "main")
 
-        # Login validation
-        if login_btn:
-            if email == "user" and password == "demo123":
-                st.session_state.logged_in = True
-                st.toast("Login Successful!")
-                st.rerun()
-            else:
-                st.error("Invalid credentials. Try again.")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-else:
-# ----------------------------
-# This is the MAIN APP, displayed only AFTER login
-# ----------------------------
+if authentication_status:
+    st.session_state.logged_in = True
+    st.success(f"Welcome {name}!")  # ---------------------------- END EDIT ----------------------------
+elif authentication_status is False:
+    st.error("Username/password is incorrect")
+elif authentication_status is None:
+    st.warning("Please enter your username and password")
+
+# ---------------------------- MAIN APP ----------------------------
+if st.session_state.get('logged_in', False):
+
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p>Choose an input method to see AI prediction instantly!</p>", unsafe_allow_html=True)
 
