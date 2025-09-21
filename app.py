@@ -153,50 +153,64 @@ if not st.session_state.logged_in:
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------- MAIN APP ----------------------------
-else:
-    st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
-    if st.button("Logout"):
-        st.session_state.logged_in = False
-        st.session_state.just_logged_in = False
-        st.session_state.user_name = "User"
+st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
 
-    st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
+if st.button("Logout"):
+    st.session_state.logged_in = False
+    st.experimental_rerun()
 
-    input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
-    input_file = None
-    if input_method == "📁 Upload Image":
-        input_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
-    elif input_method == "📸 Use Camera":
-        input_file = st.camera_input("Capture an image")
+st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
 
-    if input_file:
-        img = Image.open(input_file).convert("RGB")
-        st.image(img, use_container_width=True)
-        img_array = np.array(img.resize((128, 128)), dtype=np.float32) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
-        with st.spinner("Analyzing... 🔍"):
-            try:
-                pred = model(tf.constant(img_array, dtype=tf.float32))
-                if isinstance(pred, dict) and "dense_1" in pred:
-                    pred = pred["dense_1"].numpy()[0]
+input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
+input_file = None
 
-                top3 = np.argsort(pred)[-3:][::-1]
+if input_method == "📁 Upload Image":
+    input_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
+elif input_method == "📸 Use Camera":
+    input_file = st.camera_input("Capture an image")
 
-                cols = st.columns(3)
-                for col, i in zip(cols, top3):
-                    with col:
-                        st.metric(label=classes[int(i)], value=f"{float(pred[int(i)]*100):.2f}%")
+if input_file:
+    img = Image.open(input_file).convert("RGB")
+    st.image(img, use_container_width=True)
 
-                if st.checkbox("Show all predictions"):
-                    st.markdown("---")
-                    left_col, right_col = st.columns(2)
-                    sorted_idx = np.argsort(pred)[::-1]
-                    half = len(sorted_idx)//2
-                    for i in sorted_idx[:half]:
-                        left_col.markdown(f"**{classes[int(i)]}:** {float(pred[int(i)]*100):.4f}%")
-                    for i in sorted_idx[half:]:
-                        right_col.markdown(f"**{classes[int(i)]}:** {float(pred[int(i)]*100):.4f}%")
+    # Preprocess image
+    img_array = np.array(img.resize((128, 128)), dtype=np.float32) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)  # Shape: (1, 128, 128, 3)
 
+    with st.spinner("Analyzing... 🔍"):
+        try:
+            pred = model(tf.constant(img_array, dtype=tf.float32))
 
-            except Exception as e:
-                st.error(f"Error: {e}")
+            # Handle TFSMLayer output: sometimes it's a dict
+            if isinstance(pred, dict):
+                # If only one output, get its first key
+                first_key = list(pred.keys())[0]
+                pred = pred[first_key].numpy()[0]
+            else:
+                pred = pred.numpy()[0]
+
+            # Ensure prediction is float32/float64
+            pred = np.array(pred, dtype=np.float32)
+
+            top3 = np.argsort(pred)[-3:][::-1]
+
+            # Display top 3 predictions
+            cols = st.columns(3)
+            for col, i in zip(cols, top3):
+                with col:
+                    st.metric(label=classes[int(i)], value=f"{float(pred[int(i)]*100):.2f}%")
+
+            # Optionally show all predictions
+            if st.checkbox("Show all predictions"):
+                st.markdown("---")
+                left_col, right_col = st.columns(2)
+                sorted_idx = np.argsort(pred)[::-1]
+                half = len(sorted_idx)//2
+                for i in sorted_idx[:half]:
+                    left_col.markdown(f"**{classes[int(i)]}:** {float(pred[int(i)]*100):.4f}%")
+                for i in sorted_idx[half:]:
+                    right_col.markdown(f"**{classes[int(i)]}:** {float(pred[int(i)]*100):.4f}%")
+
+        except Exception as e:
+            st.error(f"Error in prediction: {e}")
+
