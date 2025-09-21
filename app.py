@@ -11,13 +11,18 @@ import json
 model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
 
 # ----------------------------
-# Load class names from JSON
+# Load class names from JSON safely
 # ----------------------------
 with open("models/model.json", "r") as f:
-    classes_dict = json.load(f)
+    classes_data = json.load(f)
 
-# Ensure classes are ordered by numeric keys
-classes = [classes_dict[str(k)] for k in range(len(classes_dict))]
+# Extract class names depending on JSON format
+if isinstance(classes_data, dict):
+    classes = list(classes_data.values())  # just take values
+elif isinstance(classes_data, list):
+    classes = classes_data
+else:
+    raise ValueError("Unknown format for model.json")
 
 # ----------------------------
 # Streamlit page config
@@ -52,34 +57,24 @@ if not st.session_state.logged_in:
     if login_btn:
         if username == "bpa" and password == "batch":
             st.session_state.logged_in = True
-            st.success("Login Successful! You can now use the app below.")
+            st.success("Login Successful! Redirecting...")
+            st.experimental_rerun()
         else:
             st.error("Invalid credentials. Try again.")
 
 # ----------------------------
 # Main App
 # ----------------------------
-if st.session_state.logged_in:
+else:
     st.markdown("<h1 style='text-align:center;'>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center;'>Choose an input method to see the AI prediction instantly!</p>", unsafe_allow_html=True)
-
-    # Toggle between upload and camera
-    input_method = st.radio("Select input method:", ["Upload Image", "Use Camera"])
-
-    uploaded_file = None
-    camera_file = None
-
-    if input_method == "Upload Image":
-        uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
-    else:
-        camera_file = st.camera_input("Capture an image using your camera")
-
-    input_file = uploaded_file if uploaded_file else camera_file
-
-    if input_file:
-        # Display image only once
-        img = Image.open(input_file).convert("RGB")
-        st.image(img, caption="Input Image", use_column_width=True)
+    st.markdown("<p style='text-align:center;'>Upload an image to see the AI prediction instantly!</p>", unsafe_allow_html=True)
+    
+    uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
+    
+    if uploaded_file:
+        # Display uploaded image
+        img = Image.open(uploaded_file).convert("RGB")
+        st.image(img, caption="Uploaded Image", use_column_width=True)
 
         # Preprocess image
         img = img.resize((128, 128))
@@ -108,7 +103,7 @@ if st.session_state.logged_in:
 
                 st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
                 for i in top3_idx:
-                    st.markdown(f"**{classes[i]}:** {prediction[i]*100:.2f}%")
+                    st.markdown(f"{classes[i]}:** {prediction[i]*100:.2f}%")
                     st.progress(int(prediction[i]*100))
 
                 # Optional: show full predictions
@@ -117,4 +112,4 @@ if st.session_state.logged_in:
                     st.markdown("<h2>All Class Predictions:</h2>", unsafe_allow_html=True)
                     sorted_idx = np.argsort(prediction)[::-1]
                     for i in sorted_idx:
-                        st.markdown(f"**{classes[i]}:** {prediction[i]*100:.4f}%")
+                        st.markdown(f"{classes[i]}:** {prediction[i]*100:.4f}%")
