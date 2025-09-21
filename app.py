@@ -120,7 +120,8 @@ def login_form():
 
 if not st.session_state.logged_in:
     login_form()
-    st.image("https://images.unsplash.com/photo-1547493706-03c623b0a7c4", caption="Image of various animals", use_column_width=True)
+    # Corrected parameter: use_container_width instead of use_column_width
+    st.image("https://images.unsplash.com/photo-1547493706-03c623b0a7c4", caption="Image of various animals", use_container_width=True)
     st.markdown("<h3>Welcome! Please log in on the left to use the Animal Classifier.</h3>", unsafe_allow_html=True)
 else:
 # ----------------------------
@@ -159,7 +160,8 @@ else:
 
         if input_file:
             img = Image.open(input_file).convert("RGB")
-            st.image(img, caption="Input Image", use_column_width=True)
+            # Corrected parameter: use_container_width instead of use_column_width
+            st.image(img, caption="Input Image", use_container_width=True)
 
             img_resized = img.resize((128, 128))
             img_array = np.array(img_resized, dtype=np.float32) / 255.0
@@ -207,9 +209,6 @@ else:
         st.markdown("<h2>📄 Model Information</h2>", unsafe_allow_html=True)
         st.info("""
             This classifier uses a **Convolutional Neural Network (CNN)**. 
-
-[Image of Convolutional Neural Network architecture]
-
             The model was trained on a custom dataset of animal images.
         """)
         st.write("### Key Metrics")
@@ -220,7 +219,7 @@ else:
         | **Precision** | 91.2% |
         | **Recall** | 90.8% |
         """, unsafe_allow_html=True)
-
+        
     with tab3:
         st.markdown("<h2>💡 About this App</h2>", unsafe_allow_html=True)
         st.info("""
