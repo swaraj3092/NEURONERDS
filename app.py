@@ -110,15 +110,21 @@ div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px soli
 
 # ---------------------------- LOGIN PAGE ----------------------------
 if not st.session_state.logged_in:
-    # Centered cow logo using st.image
-    st.markdown("<div style='text-align:center; margin-top:50px;'>", unsafe_allow_html=True)
-    st.image("cow.png", width=120)
-    st.markdown("</div>", unsafe_allow_html=True)
+    # Centered cow logo
+    st.markdown(
+        """
+        <div style="display:flex; justify-content:center; align-items:center; margin-top:50px;">
+            <img src="cow.png" width="120" style="display:block; margin:auto;"/>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    st.markdown("<h2 style='text-align:center; color:#f0f2f6;'>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
+    # Centered headings
+    st.markdown("<h2 style='text-align:center; color:#f0f2f6; margin-top:20px;'>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
-    # Google login button
+    # Google login button (centered)
     auth_params = {
         "client_id": CLIENT_ID,
         "redirect_uri": REDIRECT_URI,
@@ -135,6 +141,7 @@ if not st.session_state.logged_in:
                 <button style="
                     width:250px; padding:12px; font-weight:bold; border-radius:12px;
                     background-color:#4285F4; color:white; border:none; cursor:pointer;
+                    display:block; margin:auto;
                     ">Continue with Google 🚀</button>
             </a>
         </div>
@@ -142,7 +149,7 @@ if not st.session_state.logged_in:
     )
 
     # OR separator
-    st.markdown('<div class="or-separator" style="margin:10px 0;">OR</div>', unsafe_allow_html=True)
+    st.markdown('<div class="or-separator" style="margin:10px 0;"></div>', unsafe_allow_html=True)
 
     # Demo login
     email = st.text_input("Email", placeholder="user@example.com")
@@ -155,12 +162,13 @@ if not st.session_state.logged_in:
         else:
             st.error("Invalid demo credentials.")
 
-    # Links
-    col_link1, col_link2 = st.columns(2)
+    # Links (centered using columns)
+    col_link1, col_link2 = st.columns([1,1])
     with col_link1:
-        st.markdown("<p style='text-align:left;'><a href='#'>Forgot password?</a></p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center;'><a href='#'>Forgot password?</a></p>", unsafe_allow_html=True)
     with col_link2:
-        st.markdown("<p style='text-align:right;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
+
 
 
 
