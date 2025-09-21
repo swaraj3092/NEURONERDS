@@ -5,8 +5,14 @@ from PIL import Image
 import json
 
 
-# Load SavedModel folder
-model = load_model("models/animal_classifier_savedmodel", compile=False)
+import tensorflow as tf
+
+# Load the saved model
+model = tf.keras.models.load_model("models/animal_classifier_savedmodel")
+
+# Verify model summary
+model.summary()
+
 
 with open("models/model.json", "r") as f:
     classes = json.load(f)
