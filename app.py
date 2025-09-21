@@ -11,13 +11,18 @@ import json
 model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
 
 # ----------------------------
-# Load class names from JSON
+# Load class names from JSON safely
 # ----------------------------
 with open("models/model.json", "r") as f:
-    classes_dict = json.load(f)
+    classes_data = json.load(f)
 
-# Ensure classes are ordered by numeric keys
-classes = [classes_dict[str(k)] for k in range(len(classes_dict))]
+# Extract class names depending on JSON format
+if isinstance(classes_data, dict):
+    classes = list(classes_data.values())  # just take values
+elif isinstance(classes_data, list):
+    classes = classes_data
+else:
+    raise ValueError("Unknown format for model.json")
 
 # ----------------------------
 # Streamlit page config
@@ -93,13 +98,6 @@ else:
                 prediction = None
 
             if prediction is not None:
-                # Ensure classes length matches prediction length silently
-                if len(classes) != len(prediction):
-                    if len(classes) < len(prediction):
-                        classes += [f"class_{i}" for i in range(len(prediction)-len(classes))]
-                    else:
-                        classes = classes[:len(prediction)]
-
                 # Top 3 predictions
                 top3_idx = prediction.argsort()[-3:][::-1]
 
