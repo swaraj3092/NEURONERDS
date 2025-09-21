@@ -276,41 +276,53 @@ if st.session_state.logged_in:
         img = Image.open(input_file).convert("RGB")
         st.image(img, use_container_width=True)
 
-        # Preprocess image for model
+        # Preprocess image
         img_array = np.array(img.resize((128,128)), dtype=np.float32) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
 
         with st.spinner("Analyzing... 🔍"):
             try:
+                # Get model prediction
                 pred = model(tf.constant(img_array, dtype=tf.float32))
 
-                # Handle dict output from TFSMLayer
-                if isinstance(pred, dict) and "dense_1" in pred:
-                    pred = pred["dense_1"]
-                
-                # Convert to numpy if tensor
+                # Handle dict output
+                if isinstance(pred, dict):
+                    if "dense_1" in pred:
+                        pred = pred["dense_1"]
+                    else:
+                        # pick the first key if not known
+                        pred = list(pred.values())[0]
+
+                # Convert tensor to numpy if necessary
                 if hasattr(pred, "numpy"):
                     pred = pred.numpy()
-                
-                pred = np.array(pred[0])  # ensure 1D array
 
-                # Show top 3 predictions
-                top3 = np.argsort(pred)[-3:][::-1]
-                cols = st.columns(3)
-                for col, i in zip(cols, top3):
-                    with col:
-                        st.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
+                # Ensure 1D array
+                pred = np.array(pred[0])
 
-                # Optionally show all predictions
-                if st.checkbox("Show all predictions"):
-                    st.markdown("---")
-                    left_col, right_col = st.columns(2)
-                    sorted_idx = np.argsort(pred)[::-1]
-                    half = len(sorted_idx)//2
-                    for i in sorted_idx[:half]:
-                        left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
-                    for i in sorted_idx[half:]:
-                        right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+                # Check for empty or invalid output
+                if pred.size == 0:
+                    st.error("Model returned empty prediction. Check input or model.")
+                else:
+                    # Display top 3 predictions
+                    top3 = np.argsort(pred)[-3:][::-1]
+                    cols = st.columns(3)
+                    for col, i in zip(cols, top3):
+                        with col:
+                            st.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
+
+                    # Optionally show all predictions
+                    if st.checkbox("Show all predictions"):
+                        st.markdown("---")
+                        left_col, right_col = st.columns(2)
+                        sorted_idx = np.argsort(pred)[::-1]
+                        half = len(sorted_idx)//2
+                        for i in sorted_idx[:half]:
+                            left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+                        for i in sorted_idx[half:]:
+                            right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
 
             except Exception as e:
+                st.error(f"Prediction error: {e}")
+
                 st.error(f"Error: {e}")
