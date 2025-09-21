@@ -9,7 +9,7 @@ from io import BytesIO
 # ----------------------------
 # Page Config
 # ----------------------------
-# The page_icon is now "cow.png"
+# Assumes you have a cow.png file for the favicon
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
 
 # ----------------------------
@@ -38,61 +38,98 @@ model = load_model()
 classes = load_classes()
 
 # ----------------------------
-# Modern Dark CSS Styling
+# Modern Light CSS Styling (Updated to match the new UI)
 # ----------------------------
 st.markdown("""
 <style>
 body {
-    background-color: #1e1e2f;
-    color: #f5f5f5;
+    background-color: #f0f2f6; /* Light gray background */
+    color: #1e1e2f; /* Dark text for contrast */
     font-family: 'Arial', sans-serif;
 }
 h1, h2, h3 {
-    color: #ffffff;
+    color: #1e1e2f; /* Dark header text */
     text-align: center;
-    text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+    text-shadow: none;
 }
 .stButton>button {
-    background-color: #ff6f61;
+    background-color: #3b5998; /* A shade of blue for buttons */
     color: white;
     font-weight: bold;
     border-radius: 12px;
     padding: 12px 28px;
     transition: all 0.3s ease;
+    border: none;
 }
 .stButton>button:hover {
-    background-color: #ff3b2f;
-    transform: scale(1.05);
+    background-color: #314a79;
+    transform: scale(1.02);
 }
 .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
     font-size: 1.2rem;
     font-weight: bold;
 }
-.pred-card {
-    background: #2e2e3f;
-    border-radius: 15px;
-    padding: 20px;
-    margin: 10px;
-    box-shadow: 0px 8px 16px rgba(0,0,0,0.5);
-    text-align: center;
-    transition: transform 0.3s ease;
-}
-.pred-card:hover {
-    transform: translateY(-5px);
-}
-.stMetric {
-    background: #2e2e3f;
-    border-radius: 15px;
-    padding: 15px;
-    text-align: center;
-    box-shadow: 0px 4px 8px rgba(0,0,0,0.3);
-}
-.css-1r6slb0 input {
-    border-radius: 12px;
-}
-.stRadio > label {
+/* Style for the Google Button */
+.google-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    cursor: pointer;
+    background-color: white;
+    color: #1e1e2f;
     font-weight: bold;
-    font-size: 1.1em;
+    transition: background-color 0.2s;
+    text-decoration: none;
+}
+.google-btn:hover {
+    background-color: #f1f1f1;
+}
+.google-btn img {
+    margin-right: 10px;
+}
+.login-container {
+    background: #ffffff; /* White background for the card */
+    border-radius: 20px;
+    padding: 40px;
+    margin: 50px auto;
+    width: 400px;
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.1);
+    text-align: center;
+}
+.login-logo {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: 120px; /* Adjust logo size */
+    margin-bottom: 20px;
+}
+.or-separator {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 20px 0;
+}
+.or-separator::before,
+.or-separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #ccc;
+}
+.or-separator:not(:empty)::before {
+    margin-right: .25em;
+}
+.or-separator:not(:empty)::after {
+    margin-left: .25em;
+}
+.stTextInput > div > div > input {
+    border-radius: 8px;
+}
+.stTextInput > label {
+    font-weight: normal; /* Normal font weight for field labels */
 }
 </style>
 """, unsafe_allow_html=True)
@@ -103,30 +140,53 @@ h1, h2, h3 {
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
-def login_form():
-    """Displays the login form in a sidebar."""
-    with st.sidebar:
-        st.markdown("<h1>🔒 BPA Login</h1>", unsafe_allow_html=True)
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        login_btn = st.button("Login")
+if not st.session_state.logged_in:
+    # Login UI
+    with st.container():
+        st.markdown('<div class="login-container">', unsafe_allow_html=True)
+        
+        # Logo
+        # Assumes pashu_pehchaan_logo.png is in the same directory
+        st.image("pashu_pehchaan_logo.png", use_column_width=False, output_format="PNG")
+        
+        # Welcome Text
+        st.markdown("<h2>Welcome to पशु पहचान<br>(Pashu Pehchaan)</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #555;'>Sign in to continue</p>", unsafe_allow_html=True)
 
+        # Google Button (Styling)
+        st.markdown('<div class="google-btn"> <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_Google_g_darkmode_2020.svg" width="20"> Continue with Google</div>', unsafe_allow_html=True)
+        
+        # OR Separator
+        st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
+        
+        # Login Form Fields
+        email = st.text_input("Email", placeholder="you@example.com")
+        password = st.text_input("Password", type="password")
+        
+        # Login Button
+        login_btn = st.button("Sign in", use_container_width=True)
+        
+        # Links
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("<p style='text-align: left;'><a href='#'>Forgot password?</a></p>", unsafe_allow_html=True)
+        with col2:
+            st.markdown("<p style='text-align: right;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
+
+        # Login validation logic
         if login_btn:
-            if username == "user" and password == "demo123":
+            if email == "user" and password == "demo123":
                 st.session_state.logged_in = True
-                st.success("Login Successful!")
+                st.toast("Login Successful!")
                 st.rerun()
             else:
                 st.error("Invalid credentials. Try again.")
-
-if not st.session_state.logged_in:
-    login_form()
-    # The image on the login page is now "destop.png"
-    st.image("destop.png", caption="Welcome to the Animal Classifier!", use_container_width=True)
-    st.markdown("<h3>Welcome! Please log in on the left to use the Animal Classifier.</h3>", unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
 else:
 # ----------------------------
-# Main App
+# Main App (Hidden until logged in)
 # ----------------------------
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p>Choose an input method to see AI prediction instantly!</p>", unsafe_allow_html=True)
@@ -192,11 +252,7 @@ else:
     with tab2:
         st.markdown("<h2>📄 Model Information</h2>", unsafe_allow_html=True)
         st.info("""
-            This classifier uses a **Convolutional Neural Network (CNN)**. 
-
-[Image of a convolutional neural network architecture]
-
-            The model was trained on a custom dataset of animal images.
+            This classifier uses a **Convolutional Neural Network (CNN)**.             The model was trained on a custom dataset of animal images.
         """)
         st.write("### Key Metrics")
         st.markdown("""
