@@ -1,3 +1,11 @@
+import os
+import warnings
+
+# ------------------ SUPPRESS WARNINGS ------------------
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=all, 1=INFO, 2=WARNING, 3=ERROR
+warnings.filterwarnings("ignore")  # Ignore Python warnings
+
+# Then import other libraries
 import streamlit as st
 from PIL import Image
 import numpy as np
@@ -6,6 +14,7 @@ from keras.layers import TFSMLayer
 import json
 import requests
 import urllib.parse
+
 
 # ---------------------------- Page Config ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
