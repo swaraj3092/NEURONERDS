@@ -47,7 +47,6 @@ if not st.session_state.logged_in:
         if username == "bpa" and password == "batch":  # simple authentication
             st.session_state.logged_in = True
             st.success("Login Successful! Redirecting...")
-            time.sleep(1)
             st.experimental_rerun()
         else:
             st.error("Invalid credentials. Try again.")
