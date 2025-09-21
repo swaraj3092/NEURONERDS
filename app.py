@@ -9,8 +9,8 @@ from io import BytesIO
 # ----------------------------
 # Page Config
 # ----------------------------
-# Assumes you have a cow_logo.png file in your project directory
-st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow_logo.png")
+# The page_icon now correctly references the local PNG file.
+st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
 
 # ----------------------------
 # Caching Functions
