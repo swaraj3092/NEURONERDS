@@ -110,17 +110,9 @@ div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px soli
 
 # ---------------------------- LOGIN PAGE ----------------------------
 if not st.session_state.logged_in:
-    # Centered cow logo
-    st.markdown(
-        """
-        <div style="display:flex; justify-content:center; align-items:center; margin-top:50px;">
-            <img src="cow.png" width="120" style="display:block; margin:auto;"/>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # Centered headings
+    # Centered cow logo using st.image
+    st.write("")  # Add some spacing at top
+    st.image("cow.png", width=120, caption=None, use_column_width=False)  # ✅ loads local image reliably
     st.markdown("<h2 style='text-align:center; color:#f0f2f6; margin-top:20px;'>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
@@ -168,6 +160,7 @@ if not st.session_state.logged_in:
         st.markdown("<p style='text-align:center;'><a href='#'>Forgot password?</a></p>", unsafe_allow_html=True)
     with col_link2:
         st.markdown("<p style='text-align:center;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
+
 
 
 
