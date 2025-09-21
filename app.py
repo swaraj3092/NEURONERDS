@@ -105,17 +105,17 @@ if uploaded_file:
     img_array = np.expand_dims(img_array, axis=0)  # shape (1,128,128,3)
 
     with st.spinner("Analyzing... 🔍"):
-        # Call the TFSMLayer directly
-        prediction_tensor = model(tf.convert_to_tensor(img_array, dtype=tf.float32))
+        # Call TFSMLayer directly
+        prediction_output = model(tf.constant(img_array, dtype=tf.float32))
 
-        # Convert output safely to numpy
-        if isinstance(prediction_tensor, tf.Tensor):
-            prediction = prediction_tensor.numpy()[0]  # standard TF tensor
-        elif isinstance(prediction_tensor, (list, tuple)):
-            prediction = np.array(prediction_tensor[0])  # sometimes it's a list
+        # Extract prediction safely
+        if isinstance(prediction_output, tf.Tensor):
+            prediction = prediction_output.numpy()[0]  # normal TF tensor
+        elif isinstance(prediction_output, (list, tuple)) and isinstance(prediction_output[0], tf.Tensor):
+            prediction = prediction_output[0].numpy()[0]
         else:
-            # fallback for RaggedTensor or other outputs
-            prediction = tf.convert_to_tensor(prediction_tensor).numpy()[0]
+            # Fallback: try converting first element to numpy
+            prediction = np.array(prediction_output[0])
 
         st.write("Raw prediction:", prediction.tolist())
 
@@ -127,7 +127,6 @@ if uploaded_file:
         st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
         st.progress(int(prediction[i]*100))
 
-        st.progress(int(prediction[i]*100))
 
 
 
