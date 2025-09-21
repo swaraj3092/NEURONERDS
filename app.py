@@ -1,22 +1,25 @@
 import streamlit as st
 from PIL import Image
 import numpy as np
-from tensorflow.keras.models import load_model
+import tensorflow as tf
 import json
 
 # ----------------------------
-# Load Keras model
+# Load Keras SavedModel
 # ----------------------------
-model = load_model("models/animal_classifier.h5")  # use your actual H5 model file
+model = tf.keras.models.load_model("models/animal_classifier_savedmodel")
 
 # Load class names safely
 with open("models/model.json", "r") as f:
     classes_data = json.load(f)
 
+# Generate class list
 if isinstance(classes_data, dict):
     classes = list(classes_data.values())
-else:
+elif isinstance(classes_data, list):
     classes = classes_data
+else:
+    classes = []
 
 # ----------------------------
 # Streamlit page config
@@ -76,12 +79,11 @@ else:
         img_array = np.expand_dims(img_array, axis=0)  # shape (1,128,128,3)
 
         with st.spinner("Analyzing... 🔍"):
-            prediction = model.predict(img_array)[0]  # get first batch
+            prediction = model.predict(img_array)[0]  # first batch
 
-            # Ensure classes length matches prediction length
-            # Automatically create class names from prediction length
-            #classes = [f"class_{i}" for i in range(len(prediction))]
-
+            # Generate class names from prediction length if needed
+            if len(classes) != len(prediction):
+                classes = [f"class_{i}" for i in range(len(prediction))]
 
             # Top 3 predictions
             top3_idx = prediction.argsort()[-3:][::-1]
@@ -91,11 +93,10 @@ else:
                 st.markdown(f"**{classes[i]}:** {prediction[i]*100:.2f}%")
                 st.progress(int(prediction[i]*100))
 
-            # Optional: Show full raw predictions
+            # Optional: Show full predictions
             show_all = st.checkbox("Show full class predictions")
             if show_all:
                 st.markdown("<h2>All Class Predictions:</h2>", unsafe_allow_html=True)
-                # Sort descending
                 sorted_idx = np.argsort(prediction)[::-1]
                 for i in sorted_idx:
                     st.markdown(f"**{classes[i]}:** {prediction[i]*100:.4f}%")
