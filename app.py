@@ -17,10 +17,8 @@ with open("models/model.json", "r") as f:
 # Convert to list safely
 if isinstance(classes_data, dict):
     try:
-        # Try numeric string keys
         classes = [classes_data[str(k)] for k in range(len(classes_data))]
     except KeyError:
-        # Fallback: take values in arbitrary order
         classes = list(classes_data.values())
 elif isinstance(classes_data, list):
     classes = classes_data
@@ -116,3 +114,10 @@ else:
                 for i in top3_idx:
                     st.markdown(f"**{classes[i]}:** {prediction[i]*100:.2f}%")
                     st.progress(int(prediction[i]*100))
+
+                # Optional: Show full raw predictions
+                show_all = st.checkbox("Show full class predictions")
+                if show_all:
+                    st.markdown("<h2>All Class Predictions:</h2>", unsafe_allow_html=True)
+                    for i, prob in enumerate(prediction):
+                        st.markdown(f"**{classes[i]}:** {prob*100:.4f}%")
