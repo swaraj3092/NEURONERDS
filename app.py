@@ -99,15 +99,17 @@ h1, h2, h3 {
     margin-right: 10px;
 }
 .login-container {
-    background: #1a1a2e; /* Dark background for the login card itself, matching page */
-    border-radius: 20px;
-    padding: 40px;
-    margin: 20px auto; /* Reduced top margin to bring it up */
-    width: 400px;
-    box-shadow: 0px 8px 20px rgba(0,0,0,0.3); /* Darker shadow */
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    width: 100% !important;
     text-align: center;
-    color: #f0f2f6; /* Light text for login card */
+    color: #f0f2f6;
 }
+
+
 
 /* Specific CSS to center the image and make it circular */
 .stImage {
