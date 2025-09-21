@@ -9,7 +9,8 @@ from io import BytesIO
 # ----------------------------
 # Page Config
 # ----------------------------
-st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="🐄")
+# Assumes you have a cow_logo.png file in your project directory
+st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow_logo.png")
 
 # ----------------------------
 # Caching Functions
@@ -111,7 +112,7 @@ def login_form():
         login_btn = st.button("Login")
 
         if login_btn:
-            if username == "bpa" and password == "batch":
+            if username == "user" and password == "demo123":
                 st.session_state.logged_in = True
                 st.success("Login Successful!")
                 st.rerun()
@@ -133,7 +134,6 @@ else:
 
     with tab1:
         # Input choice with icons
-        # Removed the "🖼️ Use Example Image" option
         input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
 
         input_file = None
