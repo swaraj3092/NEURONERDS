@@ -1,4 +1,5 @@
 streamlit
 tensorflow
-pandas
+pillow
 numpy
+h5py
