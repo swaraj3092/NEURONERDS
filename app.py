@@ -151,14 +151,13 @@ if not st.session_state.logged_in:
     # OR separator
     st.markdown('<div class="or-separator" style="margin:10px 0;"></div>', unsafe_allow_html=True)
 
-    # Simple email/password login
+    # Manual login with email/password
     email = st.text_input("Email", placeholder="user@example.com")
     password = st.text_input("Password", type="password")
     if st.button("Login"):
-        # Example credentials check (replace with your auth)
-        if email=="user" and password=="123456":
+        if email == "user" and password == "demo123":  # ✅ password updated
             st.session_state.logged_in = True
-            st.session_state.user_name = email  # or "User"
+            st.session_state.user_name = email
             st.rerun()
         else:
             st.error("Invalid credentials.")
