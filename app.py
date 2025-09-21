@@ -6,6 +6,8 @@ from keras.layers import TFSMLayer
 import json
 import requests
 import urllib.parse
+from google_auth_oauthlib.flow import Flow
+import os
 
 # ---------------------------- Page Config ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
@@ -29,9 +31,9 @@ model = load_model()
 classes = load_classes()
 
 # ---------------------------- Google OAuth Config ----------------------------
-CLIENT_ID = st.secrets["google_oauth"]["client_id"]
-CLIENT_SECRET = st.secrets["google_oauth"]["client_secret"]
-REDIRECT_URI = st.secrets["google_oauth"]["redirect_uri"]
+CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
+CLIENT_SECRET = "YOUR_CLIENT_SECRET_HERE"
+REDIRECT_URI = "https://neuronerds.streamlit.app/"
 SCOPES = "openid email profile"
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URI = "https://oauth2.googleapis.com/token"
@@ -40,6 +42,8 @@ USER_INFO_URI = "https://www.googleapis.com/oauth2/v1/userinfo"
 # ---------------------------- Session State ----------------------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+if "auth_initiated" not in st.session_state:
+    st.session_state.auth_initiated = False
 
 # ---------------------------- CSS Styling ----------------------------
 st.markdown("""
@@ -76,8 +80,9 @@ if not st.session_state.logged_in:
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
         # Handle OAuth redirect
-        if "code" in st.experimental_get_query_params():
-            code = st.experimental_get_query_params()["code"][0]
+        # st.experimental_get_query_params is deprecated, using st.query_params
+        if "code" in st.query_params:
+            code = st.query_params["code"][0]
             data = {
                 "code": code,
                 "client_id": CLIENT_ID,
@@ -85,15 +90,18 @@ if not st.session_state.logged_in:
                 "redirect_uri": REDIRECT_URI,
                 "grant_type": "authorization_code"
             }
-            token_resp = requests.post(TOKEN_URI, data=data).json()
-            access_token = token_resp.get("access_token")
-            if access_token:
-                user_info = requests.get(USER_INFO_URI, params={"alt":"json"}, headers={"Authorization": f"Bearer {access_token}"}).json()
-                st.session_state.logged_in = True
-                st.session_state.user_name = user_info.get("name","User")
-                st.experimental_rerun()
-            else:
-                st.error("Failed to login. Please try again.")
+            try:
+                token_resp = requests.post(TOKEN_URI, data=data).json()
+                access_token = token_resp.get("access_token")
+                if access_token:
+                    user_info = requests.get(USER_INFO_URI, params={"alt":"json"}, headers={"Authorization": f"Bearer {access_token}"}).json()
+                    st.session_state.logged_in = True
+                    st.session_state.user_name = user_info.get("name","User")
+                    st.rerun()
+                else:
+                    st.error("Failed to login. Please try again.")
+            except Exception as e:
+                st.error(f"An error occurred during authentication: {e}")
 
         # Google login button
         auth_params = {
@@ -116,7 +124,7 @@ if not st.session_state.logged_in:
             if email=="user" and password=="demo123":
                 st.session_state.logged_in=True
                 st.session_state.user_name="Demo User"
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Invalid demo credentials.")
 
@@ -129,69 +137,44 @@ if not st.session_state.logged_in:
 
 # ---------------------------- MAIN APP ----------------------------
 if st.session_state.get("logged_in"):
-    st.markdown(f"<h2>Welcome, {st.session_state.user_name}!</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
     if st.button("Logout"):
         st.session_state.logged_in=False
-        st.experimental_rerun()
+        st.rerun()
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
 
-    tab1, tab2, tab3 = st.tabs(["📊 Classifier", "📄 Model Info", "💡 About App"])
-
-    # ---------------- Tab 1: Classifier ----------------
-    with tab1:
-        input_method = st.radio("Select input method:", ["📁 Upload Image","📸 Use Camera"])
-        input_file = None
-        if input_method=="📁 Upload Image":
-            input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
-        elif input_method=="📸 Use Camera":
-            input_file = st.camera_input("Capture an image")
-        if input_file:
-            img = Image.open(input_file).convert("RGB")
-            st.image(img, use_column_width=True)
-            img_array = np.array(img.resize((128,128)),dtype=np.float32)/255.0
-            img_array = np.expand_dims(img_array, axis=0)
-            with st.spinner("Analyzing... 🔍"):
-                try:
-                    pred = model(tf.constant(img_array,dtype=tf.float32))
-                    if isinstance(pred, dict) and "dense_1" in pred:
-                        pred = pred["dense_1"].numpy()[0]
-                    top3 = np.argsort(pred)[-3:][::-1]
-                    cols = st.columns(3)
-                    for col,i in zip(cols,top3):
-                        col.metric(label=classes[i],value=f"{pred[i]*100:.2f}%")
-                    if st.checkbox("Show all predictions"):
-                        st.markdown("---")
-                        left_col,right_col=st.columns(2)
-                        sorted_idx = np.argsort(pred)[::-1]
-                        half = len(sorted_idx)//2
-                        for i in sorted_idx[:half]:
-                            left_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
-                        for i in sorted_idx[half:]:
-                            right_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
-                except Exception as e:
-                    st.error(f"Error: {e}")
-
-    # ---------------- Tab 2: Model Info ----------------
-    with tab2:
-        st.markdown("<h2>📄 Model Information</h2>", unsafe_allow_html=True)
-        st.info("""
-        This classifier uses a **Convolutional Neural Network (CNN)** trained on a custom dataset of animal images.
-        """)
-        st.markdown("""
-        | Metric | Value |
-        | :--- | :--- |
-        | **Accuracy** | 92.5% |
-        | **Precision** | 91.2% |
-        | **Recall** | 90.8% |
-        """, unsafe_allow_html=True)
-
-    # ---------------- Tab 3: About ----------------
-    with tab3:
-        st.markdown("<h2>💡 About this App</h2>", unsafe_allow_html=True)
-        st.info("""
-        This app allows you to upload an image or use your camera to classify animal types using AI.
-        
-        **Developers:** BPA Batch 2024
-        """)
-
+    # Removed tab2 and tab3
+    input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
+    input_file = None
+    if input_method=="📁 Upload Image":
+        input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
+    elif input_method=="📸 Use Camera":
+        input_file = st.camera_input("Capture an image")
+    
+    if input_file:
+        img = Image.open(input_file).convert("RGB")
+        st.image(img, use_container_width=True)
+        img_array = np.array(img.resize((128,128)),dtype=np.float32)/255.0
+        img_array = np.expand_dims(img_array, axis=0)
+        with st.spinner("Analyzing... 🔍"):
+            try:
+                pred = model(tf.constant(img_array,dtype=tf.float32))
+                if isinstance(pred, dict) and "dense_1" in pred:
+                    pred = pred["dense_1"].numpy()[0]
+                top3 = np.argsort(pred)[-3:][::-1]
+                cols = st.columns(3)
+                for col,i in zip(cols,top3):
+                    with col:
+                        st.metric(label=classes[i],value=f"{pred[i]*100:.2f}%")
+                if st.checkbox("Show all predictions"):
+                    st.markdown("---")
+                    left_col,right_col=st.columns(2)
+                    sorted_idx = np.argsort(pred)[::-1]
+                    half = len(sorted_idx)//2
+                    for i in sorted_idx[:half]:
+                        left_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
+                    for i in sorted_idx[half:]:
+                        right_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
+            except Exception as e:
+                st.error(f"Error: {e}")
