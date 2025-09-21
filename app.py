@@ -1,3 +1,11 @@
+import os
+import warnings
+
+# ------------------ SUPPRESS WARNINGS ------------------
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=all, 1=INFO, 2=WARNING, 3=ERROR
+warnings.filterwarnings("ignore")  # Ignore Python warnings
+
+# Then import other libraries
 import streamlit as st
 from PIL import Image
 import numpy as np
@@ -28,9 +36,7 @@ def load_classes():
 model = load_model()
 classes = load_classes()
 
-# ----------------------------
-# Google OAuth Configuration
-# ----------------------------
+# ---------------------------- Google OAuth Config ----------------------------
 CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
 CLIENT_SECRET = "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"
 REDIRECT_URI = "https://neuronerds.streamlit.app/"
@@ -45,6 +51,34 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
+
+# ---------------------------- GOOGLE LOGIN HANDLER (Moved to top) ----------------------------
+if "code" in st.query_params:
+    try:
+        code = st.query_params["code"][0]
+        data = {
+            "code": code,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+            "redirect_uri": REDIRECT_URI,
+            "grant_type": "authorization_code"
+        }
+        token_resp = requests.post(TOKEN_URI, data=data).json()
+        access_token = token_resp.get("access_token")
+        if access_token:
+            user_info = requests.get(
+                USER_INFO_URI,
+                params={"alt": "json"},
+                headers={"Authorization": f"Bearer {access_token}"}
+            ).json()
+            st.session_state.logged_in = True
+            st.session_state.user_name = user_info.get("name","User")
+            # Clear query params and rerun
+            st.rerun()
+        else:
+            st.error("Failed to login. Please try again.")
+    except Exception as e:
+        st.error(f"An error occurred during authentication: {e}")
 
 # ---------------------------- CSS Styling ----------------------------
 st.markdown("""
@@ -68,39 +102,8 @@ div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px soli
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------- Google OAuth Handling ----------------------------
-def handle_google_login():
-    if "code" in st.query_params and not st.session_state.logged_in:
-        try:
-            code = st.query_params["code"][0]
-            data = {
-                "code": code,
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
-                "redirect_uri": REDIRECT_URI,
-                "grant_type": "authorization_code"
-            }
-            token_resp = requests.post(TOKEN_URI, data=data).json()
-            access_token = token_resp.get("access_token")
-            if access_token:
-                user_info = requests.get(USER_INFO_URI, params={"alt":"json"},
-                                         headers={"Authorization": f"Bearer {access_token}"}).json()
-                st.session_state.logged_in = True
-                st.session_state.user_name = user_info.get("name","User")
-                # Clear the code from query params to avoid login loop
-                st.experimental_set_query_params()
-                st.experimental_rerun()
-            else:
-                st.error("Failed to login. Please try again.")
-        except Exception as e:
-            st.error(f"An error occurred during authentication: {e}")
-
-# Run Google login handler at the very top
-handle_google_login()
-
-# ---------------------------- PAGE LAYOUT ----------------------------
+# ---------------------------- LOGIN PAGE ----------------------------
 if not st.session_state.logged_in:
-    # Login page UI
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
@@ -148,12 +151,12 @@ if not st.session_state.logged_in:
             st.markdown("<p style='text-align:right;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
+# ---------------------------- MAIN APP ----------------------------
 else:
-    # Main app UI
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
     if st.button("Logout"):
         st.session_state.logged_in = False
-        st.experimental_rerun()
+        st.rerun()
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
 
@@ -172,28 +175,23 @@ else:
         with st.spinner("Analyzing... 🔍"):
             try:
                 pred = model(tf.constant(img_array,dtype=tf.float32))
-                if isinstance(pred, dict):
-                    pred = list(pred.values())[0].numpy()[0]
-                else:
-                    pred = pred.numpy()[0]
+                if isinstance(pred, dict) and "dense_1" in pred:
+                    pred = pred["dense_1"].numpy()[0]
                 
                 top3 = np.argsort(pred)[-3:][::-1]
                 
                 cols = st.columns(3)
                 for col,i in zip(cols,top3):
-                    i = int(i)
                     with col:
-                        st.metric(label=classes[i],value=f"{pred[i]*100:.2f}%")
+                        st.metric(label=classes[int(i)],value=f"{pred[i]*100:.2f}%")
                 if st.checkbox("Show all predictions"):
                     st.markdown("---")
                     left_col,right_col=st.columns(2)
                     sorted_idx = np.argsort(pred)[::-1]
                     half = len(sorted_idx)//2
                     for i in sorted_idx[:half]:
-                        i = int(i)
-                        left_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
+                        left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
                     for i in sorted_idx[half:]:
-                        i = int(i)
-                        right_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
+                        right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
             except Exception as e:
                 st.error(f"Error: {e}")
