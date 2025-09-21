@@ -14,6 +14,8 @@ from keras.layers import TFSMLayer
 import json
 import requests
 import urllib.parse
+import base64
+
 
 
 st.markdown("""
@@ -323,14 +325,25 @@ if st.session_state.logged_in:
             st.info("No history yet.")
         else:
             for entry in reversed(st.session_state.history):
-                cols = st.columns([1,2])
-                with cols[0]:
-                    st.image(entry["image"], width=100)
-                with cols[1]:
-                    st.markdown(f"**Time:** {entry['timestamp']}")
-                    top3_idx = np.argsort(entry["predictions"])[-3:][::-1]
-                    for i in top3_idx:
-                        st.markdown(f"- {classes[int(i)]}: {entry['predictions'][i]*100:.2f}%")
-                st.markdown("---")
+    # Convert image bytes to base64
+    image_base64 = base64.b64encode(entry["image"]).decode("utf-8")
+    
+    # Get top 3 predictions
+    top3_idx = np.argsort(entry["predictions"])[-3:][::-1]
+    top3_text = ", ".join([f"{classes[int(i)]}: {entry['predictions'][i]*100:.2f}%" for i in top3_idx])
+    
+    # Display card
+    st.markdown(f"""
+    <div style='background: rgba(255,255,255,0.1); padding:15px; border-radius:15px; 
+                display:flex; align-items:center; margin-bottom:15px; 
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: transform 0.3s ease;'>
+        <img src="data:image/png;base64,{image_base64}" width="80" style="border-radius:12px; margin-right:15px;">
+        <div>
+            <b>Time:</b> {entry['timestamp']}<br>
+            <b>Top 3:</b> {top3_text}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 
 
