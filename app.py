@@ -11,18 +11,13 @@ import json
 model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
 
 # ----------------------------
-# Load class names from JSON safely
+# Load class names from JSON
 # ----------------------------
 with open("models/model.json", "r") as f:
-    classes_data = json.load(f)
+    classes_dict = json.load(f)
 
-# Extract class names depending on JSON format
-if isinstance(classes_data, dict):
-    classes = list(classes_data.values())  # just take values
-elif isinstance(classes_data, list):
-    classes = classes_data
-else:
-    raise ValueError("Unknown format for model.json")
+# Ensure classes are ordered by numeric keys
+classes = [classes_dict[str(k)] for k in range(len(classes_dict))]
 
 # ----------------------------
 # Streamlit page config
@@ -67,14 +62,25 @@ if not st.session_state.logged_in:
 # ----------------------------
 else:
     st.markdown("<h1 style='text-align:center;'>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center;'>Upload an image to see the AI prediction instantly!</p>", unsafe_allow_html=True)
-    
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
-    
-    if uploaded_file:
-        # Display uploaded image
-        img = Image.open(uploaded_file).convert("RGB")
-        st.image(img, caption="Uploaded Image", use_column_width=True)
+    st.markdown("<p style='text-align:center;'>Choose an input method to see the AI prediction instantly!</p>", unsafe_allow_html=True)
+
+    # Toggle between upload and camera
+    input_method = st.radio("Select input method:", ["Upload Image", "Use Camera"])
+
+    uploaded_file = None
+    camera_file = None
+
+    if input_method == "Upload Image":
+        uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
+    else:
+        camera_file = st.camera_input("Capture an image using your camera")
+
+    input_file = uploaded_file if uploaded_file else camera_file
+
+    if input_file:
+        # Display image
+        img = Image.open(input_file).convert("RGB")
+        st.image(img, caption="Input Image", use_column_width=True)
 
         # Preprocess image
         img = img.resize((128, 128))
