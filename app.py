@@ -62,15 +62,18 @@ if "code" in st.query_params and not st.session_state.logged_in:
         }
         token_resp = requests.post(TOKEN_URI, data=data).json()
         access_token = token_resp.get("access_token")
-        if access_token:
-            user_info = requests.get(
-                USER_INFO_URI,
-                params={"alt": "json"},
-                headers={"Authorization": f"Bearer {access_token}"}
-            ).json()
-            st.session_state.logged_in = True
-            st.session_state.user_name = user_info.get("name","User")
-            st.experimental_rerun()  # ✅ rerun only once
+        if access_token and not st.session_state.logged_in:
+        user_info = requests.get(
+            USER_INFO_URI,
+            params={"alt": "json"},
+            headers={"Authorization": f"Bearer {access_token}"}
+        ).json()
+        st.session_state.logged_in = True
+        st.session_state.user_name = user_info.get("name", "User")
+        # Clear the code from query params to avoid rerun loop
+        st.experimental_set_query_params()
+        st.experimental_rerun()
+
         else:
             st.error("Failed to login. Please try again.")
     except Exception as e:
