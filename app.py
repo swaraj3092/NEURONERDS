@@ -52,15 +52,14 @@ if not st.session_state.logged_in:
     if login_btn:
         if username == "bpa" and password == "batch":
             st.session_state.logged_in = True
-            st.success("Login Successful! Redirecting...")
-            st.experimental_rerun()
+            st.success("Login Successful! You can now use the app below.")
         else:
             st.error("Invalid credentials. Try again.")
 
 # ----------------------------
 # Main App
 # ----------------------------
-else:
+if st.session_state.logged_in:
     st.markdown("<h1 style='text-align:center;'>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center;'>Choose an input method to see the AI prediction instantly!</p>", unsafe_allow_html=True)
 
