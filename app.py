@@ -49,9 +49,11 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
+if "just_logged_in" not in st.session_state:
+    st.session_state.just_logged_in = False
 
 # ---------------------------- GOOGLE LOGIN HANDLER ----------------------------
-if "code" in st.query_params and not st.session_state.logged_in:
+if "code" in st.session_state.get("query_params", st.query_params):
     try:
         code = st.query_params["code"][0]
         data = {
@@ -71,8 +73,8 @@ if "code" in st.query_params and not st.session_state.logged_in:
             ).json()
             st.session_state.logged_in = True
             st.session_state.user_name = user_info.get("name", "User")
-            # Remove code from query params to prevent rerun loop
-            st.experimental_set_query_params()
+            st.session_state.just_logged_in = True
+            st.experimental_set_query_params()  # clear code param
             st.experimental_rerun()
         else:
             st.error("Failed to login. Please try again.")
@@ -137,6 +139,7 @@ if not st.session_state.logged_in:
             if email == "user" and password == "demo123":
                 st.session_state.logged_in = True
                 st.session_state.user_name = "Demo User"
+                st.session_state.just_logged_in = True
                 st.experimental_rerun()
             else:
                 st.error("Invalid demo credentials.")
