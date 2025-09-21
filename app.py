@@ -6,9 +6,11 @@ import json
 
 
 import tensorflow as tf
+from keras.layers import TFSMLayer
 
-# Load the saved model
-model = tf.keras.models.load_model("models/animal_classifier_savedmodel/saved_model.pb")
+# Load SavedModel as inference-only model
+model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
+
 
 # Verify model summary
 model.summary()
