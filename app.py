@@ -208,7 +208,7 @@ else:
                     for i in sorted_idx[:half]:
                         left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
                     for i in sorted_idx[half:]:
-                    right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+                        right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
             except Exception as e:
                 st.error(f"Error: {e}")
 
