@@ -37,24 +37,37 @@ h1,h2,h3 { color: #2c3e50; }
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
-if not st.session_state.logged_in:
-    st.markdown("<h1 style='text-align:center; animation: fadeIn 2s;'>🔒 BPA Login</h1>", unsafe_allow_html=True)
+def login():
+    st.markdown("<h1 style='text-align:center;'>🔒 BPA Login</h1>", unsafe_allow_html=True)
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     login_btn = st.button("Login")
     
     if login_btn:
-        if username == "bpa" and password == "batch":  # simple authentication
+        if username == "bpa" and password == "batch":
             st.session_state.logged_in = True
             st.success("Login Successful! Redirecting...")
+            time.sleep(1)
             st.experimental_rerun()
         else:
             st.error("Invalid credentials. Try again.")
 
-else:
-    # ----------------------------
-    # Main App
-    # ----------------------------
+# ----------------------------
+# Image Preprocessing
+# ----------------------------
+def preprocess_image(img):
+    # Ensure 3 channels (RGB)
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+    img = img.resize((224,224))
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)/255.0
+    return img_array.astype(np.float32)
+
+# ----------------------------
+# Main App
+# ----------------------------
+def main_app():
     st.markdown("<h1 style='text-align:center;'>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center;'>Upload an image to see the AI prediction instantly!</p>", unsafe_allow_html=True)
     
@@ -64,15 +77,21 @@ else:
         img = Image.open(uploaded_file)
         st.image(img, caption="Uploaded Image", use_column_width=True)
         
-        img = img.resize((224,224))
-        img_array = image.img_to_array(img)
-        img_array = np.expand_dims(img_array, axis=0)/255.0
+        img_array = preprocess_image(img)
         
         with st.spinner("Analyzing... 🔍"):
             prediction = model.predict(img_array)[0]
             top3_idx = prediction.argsort()[-3:][::-1]
-            
+        
         st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
         for i in top3_idx:
             st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
             st.progress(int(prediction[i]*100))
+
+# ----------------------------
+# Run
+# ----------------------------
+if not st.session_state.logged_in:
+    login()
+else:
+    main_app()
