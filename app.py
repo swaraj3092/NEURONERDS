@@ -105,18 +105,25 @@ if uploaded_file:
     img_array = np.expand_dims(img_array, axis=0)  # shape: (1,128,128,3)
 
     with st.spinner("Analyzing... 🔍"):
-        # Call TFSMLayer directly
-        prediction_tensor = model(tf.constant(img_array))  # returns tf.Tensor
-        prediction = prediction_tensor.numpy()[0]  # convert to numpy and flatten
+        # Wrap call in tf.function to ensure it executes
+        @tf.function
+        def predict_fn(x):
+            return model(x)
+
+        prediction_tensor = predict_fn(tf.convert_to_tensor(img_array, dtype=tf.float32))
+        
+        # Convert to numpy safely
+        prediction = np.array(prediction_tensor[0])  # flatten first batch dimension
 
         st.write("Raw prediction:", prediction.tolist())
 
-        # Get top 3 predictions
+        # Top 3 predictions
         top3_idx = prediction.argsort()[-3:][::-1]
 
     st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
     for i in top3_idx:
         st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
         st.progress(int(prediction[i]*100))
+
 
 
