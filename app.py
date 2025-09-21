@@ -257,7 +257,6 @@ if not st.session_state.logged_in:
 
 
 
-# ---------------------------- MAIN APP ----------------------------
 if st.session_state.logged_in:
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
 
@@ -267,92 +266,92 @@ if st.session_state.logged_in:
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
 
-    input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
-    input_file = None
+    # -------------------- Tabs --------------------
+    tab1, tab2 = st.tabs(["🖼️ Classifier", "📊 History"])
 
-    if input_method == "📁 Upload Image":
-        input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
-    elif input_method == "📸 Use Camera":
-        input_file = st.camera_input("Capture an image")
+    # -------------------- Tab 1: Classifier --------------------
+    with tab1:
+        input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
+        input_file = None
 
-    if input_file:
-        img = Image.open(input_file).convert("RGB")
-        st.image(img, use_container_width=True)
+        if input_method == "📁 Upload Image":
+            input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
+        elif input_method == "📸 Use Camera":
+            input_file = st.camera_input("Capture an image")
 
-        # Preprocess image
-        img_array = np.array(img.resize((128,128)), dtype=np.float32) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
+        if input_file:
+            img = Image.open(input_file).convert("RGB")
+            st.image(img, use_container_width=True)
 
-        with st.spinner("Analyzing... 🔍"):
-            try:
-                # Get prediction
-                pred = model(tf.constant(img_array, dtype=tf.float32))
+            # Preprocess image
+            img_array = np.array(img.resize((128,128)), dtype=np.float32) / 255.0
+            img_array = np.expand_dims(img_array, axis=0)
 
-                # Handle dict output
-                if isinstance(pred, dict):
-                    if "dense_1" in pred:
-                        pred = pred["dense_1"]
+            with st.spinner("Analyzing... 🔍"):
+                try:
+                    # Prediction
+                    pred = model(tf.constant(img_array, dtype=tf.float32))
+                    if isinstance(pred, dict):
+                        if "dense_1" in pred:
+                            pred = pred["dense_1"]
+                        else:
+                            pred = list(pred.values())[0]
+                    if hasattr(pred, "numpy"):
+                        pred = pred.numpy()
+                    pred = np.array(pred[0])
+
+                    if pred.size == 0:
+                        st.error("Model returned empty prediction.")
                     else:
-                        pred = list(pred.values())[0]
+                        # Top 3 predictions
+                        top3 = np.argsort(pred)[-3:][::-1]
+                        cols = st.columns(3)
+                        for col, i in zip(cols, top3):
+                            with col:
+                                st.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
 
-                # Convert tensor to numpy if necessary
-                if hasattr(pred, "numpy"):
-                    pred = pred.numpy()
+                        # Optionally show all predictions
+                        if st.checkbox("Show all predictions"):
+                            st.markdown("---")
+                            left_col, right_col = st.columns(2)
+                            sorted_idx = np.argsort(pred)[::-1]
+                            half = len(sorted_idx)//2
+                            for i in sorted_idx[:half]:
+                                left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+                            for i in sorted_idx[half:]:
+                                right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
 
-                pred = np.array(pred[0])  # ensure 1D array
+                        # Save to history
+                        from datetime import datetime
+                        import io
+                        buffer = io.BytesIO()
+                        img.save(buffer, format="PNG")
+                        image_bytes = buffer.getvalue()
+                        st.session_state.history.append({
+                            "image": image_bytes,
+                            "predictions": pred.tolist(),
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        })
 
-                if pred.size == 0:
-                    st.error("Model returned empty prediction. Check input or model.")
-                else:
-                    # Display top 3 predictions
-                    top3 = np.argsort(pred)[-3:][::-1]
-                    cols = st.columns(3)
-                    for col, i in zip(cols, top3):
-                        with col:
-                            st.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
+                except Exception as e:
+                    st.error(f"Prediction error: {e}")
 
-                    # Optionally show all predictions
-                    if st.checkbox("Show all predictions"):
-                        st.markdown("---")
-                        left_col, right_col = st.columns(2)
-                        sorted_idx = np.argsort(pred)[::-1]
-                        half = len(sorted_idx)//2
-                        for i in sorted_idx[:half]:
-                            left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
-                        for i in sorted_idx[half:]:
-                            right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+    # -------------------- Tab 2: History --------------------
+    with tab2:
+        st.markdown("<h2>📊 Prediction History</h2>", unsafe_allow_html=True)
 
-                    # -------------------- Save to History --------------------
-                    from datetime import datetime
-                    import io
-                    buffer = io.BytesIO()
-                    img.save(buffer, format="PNG")
-                    image_bytes = buffer.getvalue()
+        if len(st.session_state.history) == 0:
+            st.info("No history yet.")
+        else:
+            for entry in reversed(st.session_state.history):
+                cols = st.columns([1,2])
+                with cols[0]:
+                    st.image(entry["image"], width=100)
+                with cols[1]:
+                    st.markdown(f"**Time:** {entry['timestamp']}")
+                    top3_idx = np.argsort(entry["predictions"])[-3:][::-1]
+                    for i in top3_idx:
+                        st.markdown(f"- {classes[int(i)]}: {entry['predictions'][i]*100:.2f}%")
+                st.markdown("---")
 
-                    st.session_state.history.append({
-                        "image": image_bytes,
-                        "predictions": pred.tolist(),
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    })
-
-            except Exception as e:
-                st.error(f"Prediction error: {e}")
-
-    # ---------------------------- HISTORY DASHBOARD ----------------------------
-    st.markdown("---")
-    st.markdown("<h2>📊 Prediction History</h2>", unsafe_allow_html=True)
-
-    if len(st.session_state.history) == 0:
-        st.info("No history yet.")
-    else:
-        for entry in reversed(st.session_state.history):  # latest first
-            cols = st.columns([1,2])
-            with cols[0]:
-                st.image(entry["image"], width=100)
-            with cols[1]:
-                st.markdown(f"**Time:** {entry['timestamp']}")
-                top3_idx = np.argsort(entry["predictions"])[-3:][::-1]
-                for i in top3_idx:
-                    st.markdown(f"- {classes[int(i)]}: {entry['predictions'][i]*100:.2f}%")
-            st.markdown("---")
 
