@@ -54,32 +54,33 @@ if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
 
 # ---------------------------- GOOGLE LOGIN HANDLER ----------------------------
-code_list = st.experimental_get_query_params().get("code")
-if code_list:
-    code = code_list[0]
-    try:
-        data = {
-            "code": code,
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-            "redirect_uri": REDIRECT_URI,
-            "grant_type": "authorization_code"
-        }
-        token_resp = requests.post(TOKEN_URI, data=data).json()
-        access_token = token_resp.get("access_token")
-        if access_token:
-            user_info = requests.get(
-                USER_INFO_URI,
-                params={"alt": "json"},
-                headers={"Authorization": f"Bearer {access_token}"}
-            ).json()
-            st.session_state.logged_in = True
-            st.session_state.user_name = user_info.get("name", "User")
-            st.experimental_rerun()
-        else:
-            st.error("Failed to login. Please try again.")
-    except Exception as e:
-        st.error(f"An error occurred during authentication: {e}")
+if "code" in st.query_params:
+    code_list = st.query_params["code"]
+    if code_list:
+        code = code_list[0]
+        try:
+            data = {
+                "code": code,
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+                "redirect_uri": REDIRECT_URI,
+                "grant_type": "authorization_code"
+            }
+            token_resp = requests.post(TOKEN_URI, data=data).json()
+            access_token = token_resp.get("access_token")
+            if access_token:
+                user_info = requests.get(
+                    USER_INFO_URI,
+                    params={"alt": "json"},
+                    headers={"Authorization": f"Bearer {access_token}"}
+                ).json()
+                st.session_state.logged_in = True
+                st.session_state.user_name = user_info.get("name", "User")
+                st.rerun()
+            else:
+                st.error("Failed to login. Please try again.")
+        except Exception as e:
+            st.error(f"An error occurred during authentication: {e}")
 
 # ---------------------------- Google Login Button ----------------------------
 auth_params = {
@@ -102,6 +103,7 @@ st.markdown(
     </a>
     ''', unsafe_allow_html=True
 )
+
 
 
 # ---------------------------- CSS Styling ----------------------------
