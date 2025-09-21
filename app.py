@@ -72,7 +72,7 @@ else:
     
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
     
-    if uploaded_file:
+    """if uploaded_file:
         img = Image.open(uploaded_file).convert("RGB")
         st.image(img, caption="Uploaded Image", use_column_width=True)
 
@@ -91,4 +91,32 @@ else:
         for i in top3_idx:
             st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
             st.progress(int(prediction[i]*100))
+
+    """
+
+if uploaded_file:
+    # Display uploaded image
+    img = Image.open(uploaded_file).convert("RGB")
+    st.image(img, caption="Uploaded Image", use_column_width=True)
+
+    # Preprocess image
+    img = img.resize((128, 128))
+    img_array = np.array(img, dtype=np.float32) / 255.0  # normalize
+    img_array = np.expand_dims(img_array, axis=0)  # shape: (1,128,128,3)
+
+    with st.spinner("Analyzing... 🔍"):
+        # Call TFSMLayer directly
+        prediction_tensor = model(tf.constant(img_array))  # returns tf.Tensor
+        prediction = prediction_tensor.numpy()[0]  # convert to numpy and flatten
+
+        st.write("Raw prediction:", prediction.tolist())
+
+        # Get top 3 predictions
+        top3_idx = prediction.argsort()[-3:][::-1]
+
+    st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
+    for i in top3_idx:
+        st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
+        st.progress(int(prediction[i]*100))
+
 
