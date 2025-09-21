@@ -174,33 +174,41 @@ else:
         input_file = st.camera_input("Capture an image")
     
     if input_file:
-        img = Image.open(input_file).convert("RGB")
-        st.image(img, use_container_width=True)
-        img_array = np.array(img.resize((128,128)),dtype=np.float32)/255.0
-        img_array = np.expand_dims(img_array, axis=0)
-        with st.spinner("Analyzing... 🔍"):
-            try:
-                pred = model(tf.constant(img_array,dtype=tf.float32))
-                if isinstance(pred, dict) and "dense_1" in pred:
-                    pred = pred["dense_1"].numpy()[0]
-                else:
-                    pred = pred.numpy()[0]
-                
-                top3 = np.argsort(pred)[-3:][::-1]
-                
-                cols = st.columns(3)
-                for col,i in zip(cols,top3):
-                    with col:
-                        st.metric(label=classes[int(i)],value=f"{pred[i]*100:.2f}%")
-                
-                if st.checkbox("Show all predictions"):
-                    st.markdown("---")
-                    left_col,right_col=st.columns(2)
-                    sorted_idx = np.argsort(pred)[::-1]
-                    half = len(sorted_idx)//2
-                    for i in sorted_idx[:half]:
-                        left_col.markdown(f"{classes[int(i)]}:** {pred[i]*100:.4f}%")
-                    for i in sorted_idx[half:]:
-                        right_col.markdown(f"{classes[int(i)]}:** {pred[i]*100:.4f}%")
-            except Exception as e:
-                st.error(f"Error: {e}")
+    img = Image.open(input_file).convert("RGB")
+    st.image(img, use_container_width=True)
+    img_array = np.array(img.resize((128,128)), dtype=np.float32)/255.0
+    img_array = np.expand_dims(img_array, axis=0)
+    
+    with st.spinner("Analyzing... 🔍"):
+        try:
+            pred = model(tf.constant(img_array, dtype=tf.float32))
+
+            # Handle TFSMLayer returning dict
+            if isinstance(pred, dict):
+                first_key = list(pred.keys())[0]
+                pred = pred[first_key]
+
+            # Convert to numpy
+            if tf.is_tensor(pred):
+                pred = pred.numpy()[0]
+
+            # Get top 3 predictions
+            top3 = np.argsort(pred)[-3:][::-1]
+
+            cols = st.columns(3)
+            for col, i in zip(cols, top3):
+                with col:
+                    st.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
+
+            if st.checkbox("Show all predictions"):
+                st.markdown("---")
+                left_col, right_col = st.columns(2)
+                sorted_idx = np.argsort(pred)[::-1]
+                half = len(sorted_idx)//2
+                for i in sorted_idx[:half]:
+                    left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+                for i in sorted_idx[half:]:
+                    right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+        except Exception as e:
+            st.error(f"Error: {e}")
+
