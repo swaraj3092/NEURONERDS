@@ -1,11 +1,5 @@
 import os
 import warnings
-
-# ------------------ SUPPRESS WARNINGS ------------------
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=all, 1=INFO, 2=WARNING, 3=ERROR
-warnings.filterwarnings("ignore")  # Ignore Python warnings
-
-# Then import other libraries
 import streamlit as st
 from PIL import Image
 import numpy as np
@@ -14,6 +8,10 @@ from keras.layers import TFSMLayer
 import json
 import requests
 import urllib.parse
+
+# ------------------ SUPPRESS WARNINGS ------------------
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+warnings.filterwarnings("ignore")
 
 # ---------------------------- Page Config ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
@@ -40,7 +38,6 @@ classes = load_classes()
 CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
 CLIENT_SECRET = "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"
 REDIRECT_URI = "https://neuronerds.streamlit.app/"
-
 SCOPES = "openid email profile"
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URI = "https://oauth2.googleapis.com/token"
@@ -73,7 +70,6 @@ if "code" in st.query_params:
             ).json()
             st.session_state.logged_in = True
             st.session_state.user_name = user_info.get("name","User")
-            # Clear query params and rerun
             st.rerun()
         else:
             st.error("Failed to login. Please try again.")
@@ -111,7 +107,6 @@ if not st.session_state.logged_in:
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
-        # Google login button
         auth_params = {
             "client_id": CLIENT_ID,
             "redirect_uri": REDIRECT_URI,
@@ -133,7 +128,6 @@ if not st.session_state.logged_in:
         )
 
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
-        # Demo login
         email = st.text_input("Email", placeholder="user@example.com")
         password = st.text_input("Password", type="password")
         if st.button("Login Demo"):
@@ -159,7 +153,6 @@ else:
         st.rerun()
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
-
     input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
     input_file = None
     if input_method=="📁 Upload Image":
