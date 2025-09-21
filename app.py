@@ -185,7 +185,7 @@ else:
                 cols = st.columns(3)
                 for col, i in zip(cols, top3):
                     with col:
-                        st.metric(label=classes[int(i)], value=f"{float(pred[i]*100):.2f}%")
+                        st.metric(label=classes[int(i)], value=f"{float(pred[int(i)]*100):.2f}%")
 
                 if st.checkbox("Show all predictions"):
                     st.markdown("---")
@@ -193,9 +193,10 @@ else:
                     sorted_idx = np.argsort(pred)[::-1]
                     half = len(sorted_idx)//2
                     for i in sorted_idx[:half]:
-                        left_col.markdown(f"**{classes[int(i)]}:** {float(pred[i]*100):.4f}%")
+                        left_col.markdown(f"**{classes[int(i)]}:** {float(pred[int(i)]*100):.4f}%")
                     for i in sorted_idx[half:]:
-                        right_col.markdown(f"**{classes[int(i)]}:** {float(pred[i]*100):.4f}%")
+                        right_col.markdown(f"**{classes[int(i)]}:** {float(pred[int(i)]*100):.4f}%")
+
 
             except Exception as e:
                 st.error(f"Error: {e}")
