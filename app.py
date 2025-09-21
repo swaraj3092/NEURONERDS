@@ -31,60 +31,56 @@ h1,h2,h3 { color: #2c3e50; }
 """, unsafe_allow_html=True)
 
 # ----------------------------
-# Session state for login
+# Login Page
 # ----------------------------
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
-if 'rerun_needed' not in st.session_state:
-    st.session_state.rerun_needed = False
 
-# ----------------------------
-# Login Function
-# ----------------------------
 def login():
     st.markdown("<h1 style='text-align:center;'>🔒 BPA Login</h1>", unsafe_allow_html=True)
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     login_btn = st.button("Login")
-    
+
     if login_btn:
-        if username == "bpa" and password == "batch":
+        if username == "bpa" and password == "batch":  # simple authentication
             st.session_state.logged_in = True
             st.success("Login Successful! Redirecting...")
-            st.session_state.rerun_needed = True  # flag for safe rerun
+            st.experimental_rerun()
         else:
             st.error("Invalid credentials. Try again.")
 
-# ----------------------------
-# Run login or main app
-# ----------------------------
 if not st.session_state.logged_in:
     login()
-    if st.session_state.rerun_needed:
-        st.session_state.rerun_needed = False
-        st.experimental_rerun()
-else:
-    # ----------------------------
-    # Main App
-    # ----------------------------
+
+# ----------------------------
+# Main App
+# ----------------------------
+if st.session_state.logged_in:
     st.markdown("<h1 style='text-align:center;'>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center;'>Upload an image to see the AI prediction instantly!</p>", unsafe_allow_html=True)
     
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
     
     if uploaded_file:
-        img = Image.open(uploaded_file).convert("RGB")  # ensure RGB
+        # Open and ensure RGB
+        img = Image.open(uploaded_file).convert("RGB")
         st.image(img, caption="Uploaded Image", use_column_width=True)
         
-        img = img.resize((224,224))
-        img_array = image.img_to_array(img)
-        img_array = np.expand_dims(img_array, axis=0)/255.0
+        # Resize and convert
+        img = img.resize((224, 224))
+        img_array = np.array(img, dtype=np.float32) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)  # batch dimension
         
+        # Prediction
         with st.spinner("Analyzing... 🔍"):
-            prediction = model.predict(img_array)[0]
-            top3_idx = prediction.argsort()[-3:][::-1]
-            
-        st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
-        for i in top3_idx:
-            st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
-            st.progress(int(prediction[i]*100))
+            try:
+                prediction = model.predict(img_array)[0]
+                top3_idx = prediction.argsort()[-3:][::-1]
+                
+                st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
+                for i in top3_idx:
+                    st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
+                    st.progress(int(prediction[i]*100))
+            except ValueError as e:
+                st.error(f"Prediction failed: {e}")
