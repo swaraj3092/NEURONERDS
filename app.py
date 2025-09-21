@@ -16,28 +16,29 @@ import requests
 import urllib.parse
 
 
-# ---------------------------- STYLING ----------------------------
 st.markdown("""
 <style>
-/* ---------- Body and container ---------- */
+/* ---------- Body and Background ---------- */
 body {
-    background: linear-gradient(to right, #1a1a2e, #162447);
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    font-family: 'Segoe UI', sans-serif;
     color: #f0f2f6;
-    font-family: 'Arial', sans-serif;
 }
+
+/* ---------- Main Container ---------- */
 .main .block-container {
     background-color: rgba(255,255,255,0.05);
     padding: 2rem;
     border-radius: 15px;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 /* ---------- Headings ---------- */
 h1, h2, h3 {
-    color: #f0f2f6;
+    color: #ffffff;
     text-align: center;
-    animation: fadeIn 1s ease-in-out;
+    animation: fadeInDown 1s ease-out;
 }
 
 /* ---------- Buttons ---------- */
@@ -50,74 +51,52 @@ h1, h2, h3 {
     border: none;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
 .stButton>button:hover {
     transform: scale(1.05);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.4);
 }
 
-/* ---------- Google Button ---------- */
-a>button {
-    background: linear-gradient(90deg, #4285F4, #34A853);
+/* ---------- Tabs Styling ---------- */
+div[role="tablist"] button {
+    background: linear-gradient(90deg, #00c6ff, #0072ff);
+    color: white;
+    font-weight: bold;
+    border-radius: 10px;
+    margin: 0 5px;
     transition: all 0.3s ease;
 }
-a>button:hover {
+div[role="tablist"] button:focus {
+    outline: none;
+}
+div[role="tablist"] button:hover {
     transform: scale(1.05);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.4);
 }
 
-/* ---------- Inputs ---------- */
-.stTextInput>div>div>input {
-    border-radius: 10px;
-    background-color: #2a2a3e;
-    color: #f0f2f6;
-    border: 1px solid #444;
-    padding: 8px;
+/* ---------- History Cards ---------- */
+.stImage img {
+    border-radius: 12px;
+    border: 3px solid #00c6ff;
+    transition: transform 0.3s ease;
 }
-.stTextInput>label {
-    color: #f0f2f6;
-    font-weight: 500;
+.stImage img:hover {
+    transform: scale(1.05);
 }
 
-/* ---------- Separator ---------- */
-.or-separator {
-    display: flex;
-    align-items: center;
-    text-align: center;
-    margin: 20px 0;
-    color: #ccc;
-}
-.or-separator::before, .or-separator::after {
-    content: '';
-    flex: 1;
-    border-bottom: 1px solid #444;
-}
-.or-separator:not(:empty)::before { margin-right: .25em; }
-.or-separator:not(:empty)::after { margin-left: .25em; }
-
-/* ---------- Logo Animation ---------- */
-div[data-testid="stImage"] img {
-    border-radius: 50%;
-    border: 3px solid #ff7eb3;
-    object-fit: cover;
-    margin: auto;
-    animation: bounce 1s infinite alternate;
-}
-
-/* ---------- Fade In Animation ---------- */
-@keyframes fadeIn {
-    from {opacity:0; transform: translateY(-20px);}
-    to {opacity:1; transform: translateY(0);}
-}
-
-/* ---------- Bounce Animation ---------- */
-@keyframes bounce {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(-15px); }
+/* ---------- Animations ---------- */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 
 # ---------------------------- Page Config ----------------------------
