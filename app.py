@@ -1,5 +1,11 @@
 import os
 import warnings
+
+# ------------------ SUPPRESS WARNINGS ------------------
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=all, 1=INFO, 2=WARNING, 3=ERROR
+warnings.filterwarnings("ignore")  # Ignore Python warnings
+
+# Then import other libraries
 import streamlit as st
 from PIL import Image
 import numpy as np
@@ -8,11 +14,7 @@ from keras.layers import TFSMLayer
 import json
 import requests
 import urllib.parse
-from google_auth_oauthlib.flow import Flow
 
-# ------------------ SUPPRESS WARNINGS ------------------
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-warnings.filterwarnings("ignore")
 
 # ---------------------------- Page Config ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
@@ -36,14 +38,9 @@ model = load_model()
 classes = load_classes()
 
 # ---------------------------- Google OAuth Config ----------------------------
-# Using st.secrets for secure storage of credentials
-try:
-    CLIENT_ID = st.secrets["google_oauth"]["client_id"]
-    CLIENT_SECRET = st.secrets["google_oauth"]["client_secret"]
-    REDIRECT_URI = st.secrets["google_oauth"]["redirect_uri"]
-except KeyError:
-    st.error("Google OAuth credentials not found in secrets.toml. Please configure them.")
-    st.stop()
+CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
+CLIENT_SECRET = "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"
+REDIRECT_URI = "https://neuronerds.streamlit.app/"
 
 SCOPES = "openid email profile"
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -56,7 +53,7 @@ if "logged_in" not in st.session_state:
 if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
 
-# ---------------------------- GOOGLE LOGIN HANDLER ----------------------------
+# ---------------------------- GOOGLE LOGIN HANDLER (Corrected) ----------------------------
 if "code" in st.query_params:
     try:
         code = st.query_params["code"][0]
