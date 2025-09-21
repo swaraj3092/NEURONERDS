@@ -10,11 +10,8 @@ import requests
 import urllib.parse
 
 # ------------------ SUPPRESS WARNINGS ------------------
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=all, 1=INFO, 2=WARNING, 3=ERROR
-warnings.filterwarnings("ignore")  # Ignore Python warnings
-
-# Then import other libraries
-
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+warnings.filterwarnings("ignore")
 
 # ---------------------------- Page Config ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
@@ -41,7 +38,6 @@ classes = load_classes()
 CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
 CLIENT_SECRET = "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"
 REDIRECT_URI = "https://neuronerds.streamlit.app/"
-
 SCOPES = "openid email profile"
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URI = "https://oauth2.googleapis.com/token"
@@ -54,6 +50,7 @@ if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
 
 # ---------------------------- GOOGLE LOGIN HANDLER (Corrected) ----------------------------
+# Replaced deprecated functions with modern equivalents
 if "code" in st.query_params:
     try:
         code = st.query_params["code"][0]
@@ -74,6 +71,7 @@ if "code" in st.query_params:
             ).json()
             st.session_state.logged_in = True
             st.session_state.user_name = user_info.get("name","User")
+            # Using the modern st.rerun()
             st.rerun()
         else:
             st.error("Failed to login. Please try again.")
