@@ -170,18 +170,16 @@ if 'logged_in' not in st.session_state:
 
 if not st.session_state.logged_in:
     # This is the LOGIN UI which will be displayed first
-    # Centered container for the login form elements
-    col1, col2, col3 = st.columns([1, 2, 1]) # Use columns to push the login card to center
-    with col2: # All login elements will be inside the middle column
-        # Removing the unnecessary container and styling the card directly
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         
-        # Logo: circular, smaller, and centered.
-        # Ensure cow.png is in the same directory as your script.
+        # Position the Welcome Text at the top
+        st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
+        # Position the logo directly below the text
         st.image("cow.png", width=100)
         
-        # Welcome Text
-        st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
+        # Sign in to continue text
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
         # Google Button (Styling)
@@ -198,7 +196,7 @@ if not st.session_state.logged_in:
         login_btn = st.button("Sign in", use_container_width=True)
         
         # Links
-        col_link1, col_link2 = st.columns(2) # Using separate columns for links to align them
+        col_link1, col_link2 = st.columns(2)
         with col_link1:
             st.markdown("<p style='text-align: left;'><a href='#'>Forgot password?</a></p>", unsafe_allow_html=True)
         with col_link2:
