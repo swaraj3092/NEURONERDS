@@ -43,23 +43,24 @@ st.markdown("""
 <style>
 /* Overall page background */
 body {
-    background-color: #1a1a2e;
-    color: #f0f2f6;
+    background-color: #1a1a2e; /* Dark background for the entire page */
+    color: #f0f2f6; /* Light text for contrast */
     font-family: 'Arial', sans-serif;
 }
 /* Main content background if logged in */
 .main .block-container {
-    background-color: #f0f2f6;
+    background-color: #f0f2f6; /* Light background for the main app content */
     color: #1e1e2f;
-    padding: 2rem;
-    border-radius: 10px;
+    padding: 2rem; /* Add some padding */
+    border-radius: 10px; /* Rounded corners for the main app container */
 }
 h1, h2, h3 {
-    color: #f0f2f6;
+    color: #f0f2f6; /* Light header text for login page */
     text-align: center;
+    text-shadow: none;
 }
 .stButton>button {
-    background-color: #3b5998;
+    background-color: #3b5998; /* A shade of blue for buttons */
     color: white;
     font-weight: bold;
     border-radius: 12px;
@@ -98,27 +99,42 @@ h1, h2, h3 {
     margin-right: 10px;
 }
 .login-container {
-    background: #1a1a2e;
+    background: #1a1a2e; /* Dark background for the login card itself, matching page */
     border-radius: 20px;
     padding: 40px;
-    margin: 50px auto;
+    margin: 20px auto; /* Reduced top margin to bring it up */
     width: 400px;
-    box-shadow: 0px 8px 20px rgba(0,0,0,0.3);
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.3); /* Darker shadow */
     text-align: center;
-    color: #f0f2f6;
+    color: #f0f2f6; /* Light text for login card */
 }
+
+/* Specific CSS to center the image and make it circular */
+.stImage {
+    display: flex; /* Use flexbox for centering */
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically if space allows */
+    margin-bottom: 20px;
+}
+.stImage img {
+    border-radius: 50%; /* Makes the image circular */
+    object-fit: cover; /* Ensures the image covers the circular area */
+    border: 3px solid #3b5998; /* Optional: adds a border around the circle */
+    display: block; /* Important for centering the image itself within its flex container */
+}
+
 .or-separator {
     display: flex;
     align-items: center;
     text-align: center;
     margin: 20px 0;
-    color: #ccc;
+    color: #ccc; /* Lighter color for OR text on dark background */
 }
 .or-separator::before,
 .or-separator::after {
     content: '';
     flex: 1;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid #444; /* Darker border for separator lines */
 }
 .or-separator:not(:empty)::before {
     margin-right: .25em;
@@ -128,33 +144,20 @@ h1, h2, h3 {
 }
 .stTextInput > div > div > input {
     border-radius: 8px;
-    background-color: #2a2a3e;
-    color: #f0f2f6;
-    border: 1px solid #444;
+    background-color: #2a2a3e; /* Darker input background */
+    color: #f0f2f6; /* Light text in input */
+    border: 1px solid #444; /* Darker border */
 }
 .stTextInput > label {
-    font-weight: normal;
-    color: #f0f2f6;
+    font-weight: normal; /* Normal font weight for field labels */
+    color: #f0f2f6; /* Light label text */
 }
 a {
-    color: #87CEEB;
+    color: #87CEEB; /* Lighter blue for links */
     text-decoration: none;
 }
 a:hover {
     text-decoration: underline;
-}
-/* New CSS to style the image and its container correctly */
-.login-logo-container {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-.login-logo-container img {
-    border-radius: 50%;
-    width: 100px; /* Make sure the image is square */
-    height: 100px;
-    object-fit: cover;
-    border: 3px solid #3b5998;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -166,59 +169,19 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
+    # This is the LOGIN UI which will be displayed first
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         
-        # Title
+        # Logo first, with some top padding
+        st.image("cow.png", width=100)
+        
+        # Title and sub-text
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
-
-        # Center cow logo properly
-        st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
-        st.image("cow.png", width=100, use_container_width=False)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        # Google Button
-        st.markdown(
-            '<div class="google-btn">'
-            '<img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_Google_g_darkmode_2020.svg" width="20">'
-            ' Continue with Google</div>',
-            unsafe_allow_html=True
-        )
-        
-        # OR Separator
-        st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
-        
-        # Login Form Fields
-        email = st.text_input("Email", placeholder="you@example.com", label_visibility="collapsed")
-        password = st.text_input("Password", type="password", label_visibility="collapsed")
-        
-        # Login Button
-        login_btn = st.button("Sign in", use_container_width=True)
-        
-        # Links
-        col_link1, col_link2 = st.columns(2)
-        with col_link1:
-            st.markdown("<p style='text-align: left;'><a href='#'>Forgot password?</a></p>", unsafe_allow_html=True)
-        with col_link2:
-            st.markdown("<p style='text-align: right;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
-
-        # Login validation logic
-        if login_btn:
-            if email == "user" and password == "demo123":
-                st.session_state.logged_in = True
-                st.toast("Login Successful!")
-                st.rerun()
-            else:
-                st.error("Invalid credentials. Try again.")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-
-
-        # Sign in to continue text
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
-        # Google Button
+        # Google Button (Styling)
         st.markdown('<div class="google-btn"> <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_Google_g_darkmode_2020.svg" width="20"> Continue with Google</div>', unsafe_allow_html=True)
         
         # OR Separator
@@ -333,4 +296,3 @@ else:
             
             **Developers:** BPA Batch 2024
         """)
-        
