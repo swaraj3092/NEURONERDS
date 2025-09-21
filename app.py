@@ -112,8 +112,8 @@ div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px soli
 if not st.session_state.logged_in:
     st.write("")  # spacing at top
 
-    # Centered small cow logo using use_container_width
-    st.image("cow.png", width=120, use_container_width=False)  # small logo
+    # Centered small cow logo
+    st.image("cow.png", width=120, use_container_width=False)
 
     # Centered headings
     st.markdown(
@@ -153,16 +153,17 @@ if not st.session_state.logged_in:
     # OR separator
     st.markdown('<div class="or-separator" style="margin:10px 0;"></div>', unsafe_allow_html=True)
 
-    # Demo login
+    # Simple email/password login
     email = st.text_input("Email", placeholder="user@example.com")
     password = st.text_input("Password", type="password")
-    if st.button("Login Demo"):
-        if email=="user" and password=="demo123":
+    if st.button("Login"):
+        # Example credentials check (replace with your auth)
+        if email=="user" and password=="123456":
             st.session_state.logged_in = True
-            st.session_state.user_name = "Demo User"
+            st.session_state.user_name = email  # or "User"
             st.rerun()
         else:
-            st.error("Invalid demo credentials.")
+            st.error("Invalid credentials.")
 
     # Links (centered using columns)
     col_link1, col_link2 = st.columns([1,1])
@@ -170,6 +171,7 @@ if not st.session_state.logged_in:
         st.markdown("<p style='text-align:center;'><a href='#'>Forgot password?</a></p>", unsafe_allow_html=True)
     with col_link2:
         st.markdown("<p style='text-align:center;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
+
 
 
 
