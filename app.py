@@ -1,11 +1,3 @@
-import os
-import warnings
-
-# ------------------ SUPPRESS WARNINGS ------------------
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=all, 1=INFO, 2=WARNING, 3=ERROR
-warnings.filterwarnings("ignore")  # Ignore Python warnings
-
-# Then import other libraries
 import streamlit as st
 from PIL import Image
 import numpy as np
@@ -14,12 +6,17 @@ from keras.layers import TFSMLayer
 import json
 import requests
 import urllib.parse
+import warnings
+import os
 
+# ---------------------------- SUPPRESS WARNINGS ----------------------------
+warnings.filterwarnings("ignore")
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress TF logging
 
-# ---------------------------- Page Config ----------------------------
+# ---------------------------- PAGE CONFIG ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
 
-# ---------------------------- Caching Functions ----------------------------
+# ---------------------------- CACHING FUNCTIONS ----------------------------
 @st.cache_resource
 def load_model():
     return TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
@@ -37,7 +34,7 @@ def load_classes():
 model = load_model()
 classes = load_classes()
 
-# ---------------------------- Google OAuth Config ----------------------------
+# ---------------------------- GOOGLE OAUTH CONFIG ----------------------------
 CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
 CLIENT_SECRET = "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"
 REDIRECT_URI = "https://neuronerds.streamlit.app/"
@@ -47,13 +44,13 @@ AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URI = "https://oauth2.googleapis.com/token"
 USER_INFO_URI = "https://www.googleapis.com/oauth2/v1/userinfo"
 
-# ---------------------------- Session State ----------------------------
+# ---------------------------- SESSION STATE ----------------------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
 
-# ---------------------------- CSS Styling ----------------------------
+# ---------------------------- CSS STYLING ----------------------------
 st.markdown("""
 <style>
 body { background-color: #1a1a2e; color: #f0f2f6; font-family: 'Arial', sans-serif; }
@@ -77,9 +74,9 @@ div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px soli
 
 # ---------------------------- GOOGLE LOGIN HANDLER ----------------------------
 def handle_google_login():
-    if "code" in st.experimental_get_query_params():
+    if "code" in st.query_params:
         try:
-            code = st.experimental_get_query_params()["code"][0]
+            code = st.query_params["code"][0]
             data = {
                 "code": code,
                 "client_id": CLIENT_ID,
@@ -90,14 +87,10 @@ def handle_google_login():
             token_resp = requests.post(TOKEN_URI, data=data).json()
             access_token = token_resp.get("access_token")
             if access_token:
-                user_info = requests.get(
-                    USER_INFO_URI,
-                    params={"alt": "json"},
-                    headers={"Authorization": f"Bearer {access_token}"}
-                ).json()
+                user_info = requests.get(USER_INFO_URI, params={"alt":"json"}, headers={"Authorization": f"Bearer {access_token}"}).json()
                 st.session_state.logged_in = True
                 st.session_state.user_name = user_info.get("name","User")
-                # clear code from URL
+                # Clear query params to prevent redirect loop
                 st.experimental_set_query_params()
                 st.experimental_rerun()
             else:
@@ -105,7 +98,6 @@ def handle_google_login():
         except Exception as e:
             st.error(f"An error occurred during authentication: {e}")
 
-# Call login handler at top
 handle_google_login()
 
 # ---------------------------- LOGIN PAGE ----------------------------
@@ -129,7 +121,7 @@ if not st.session_state.logged_in:
         auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
         st.markdown(
             f'''
-            <a href="{auth_url}" target="_blank">
+            <a href="{auth_url}">
                 <button style="
                     width:100%; padding:12px; font-weight:bold; border-radius:12px;
                     background-color:#4285F4; color:white; border:none; cursor:pointer;
@@ -150,11 +142,6 @@ if not st.session_state.logged_in:
             else:
                 st.error("Invalid demo credentials.")
 
-        col_link1, col_link2 = st.columns(2)
-        with col_link1:
-            st.markdown("<p style='text-align:left;'><a href='#'>Forgot password?</a></p>", unsafe_allow_html=True)
-        with col_link2:
-            st.markdown("<p style='text-align:right;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------- MAIN APP ----------------------------
@@ -175,7 +162,7 @@ else:
     
     if input_file:
         img = Image.open(input_file).convert("RGB")
-        st.image(img, use_container_width=True)
+        st.image(img, use_column_width=True)
         img_array = np.array(img.resize((128,128)),dtype=np.float32)/255.0
         img_array = np.expand_dims(img_array, axis=0)
         with st.spinner("Analyzing... 🔍"):
@@ -185,14 +172,15 @@ else:
                     pred = pred["dense_1"].numpy()[0]
                 else:
                     pred = pred.numpy()[0]
-                
+
+                # Top 3 predictions
                 top3 = np.argsort(pred)[-3:][::-1]
-                
                 cols = st.columns(3)
                 for col,i in zip(cols,top3):
                     with col:
                         st.metric(label=classes[int(i)],value=f"{pred[i]*100:.2f}%")
-                
+
+                # Show all predictions
                 if st.checkbox("Show all predictions"):
                     st.markdown("---")
                     left_col,right_col=st.columns(2)
