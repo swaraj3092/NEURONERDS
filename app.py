@@ -31,27 +31,29 @@ h1,h2,h3 { color: #2c3e50; }
 """, unsafe_allow_html=True)
 
 # ----------------------------
-# Login Page
+# Initialize session_state
 # ----------------------------
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
-def login():
+if 'login_attempted' not in st.session_state:
+    st.session_state.login_attempted = False
+
+# ----------------------------
+# Login Page
+# ----------------------------
+if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align:center;'>🔒 BPA Login</h1>", unsafe_allow_html=True)
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     login_btn = st.button("Login")
 
     if login_btn:
-        if username == "bpa" and password == "batch":  # simple authentication
+        st.session_state.login_attempted = True
+        if username == "bpa" and password == "batch":
             st.session_state.logged_in = True
-            st.success("Login Successful! Redirecting...")
-            st.experimental_rerun()
         else:
             st.error("Invalid credentials. Try again.")
-
-if not st.session_state.logged_in:
-    login()
 
 # ----------------------------
 # Main App
@@ -63,16 +65,13 @@ if st.session_state.logged_in:
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
     
     if uploaded_file:
-        # Open and ensure RGB
         img = Image.open(uploaded_file).convert("RGB")
         st.image(img, caption="Uploaded Image", use_column_width=True)
         
-        # Resize and convert
         img = img.resize((224, 224))
         img_array = np.array(img, dtype=np.float32) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)  # batch dimension
+        img_array = np.expand_dims(img_array, axis=0)
         
-        # Prediction
         with st.spinner("Analyzing... 🔍"):
             try:
                 prediction = model.predict(img_array)[0]
