@@ -9,7 +9,7 @@ from io import BytesIO
 # ----------------------------
 # Page Config
 # ----------------------------
-# The page_icon now correctly references the local PNG file.
+# The page_icon is now "cow.png"
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
 
 # ----------------------------
@@ -121,7 +121,8 @@ def login_form():
 
 if not st.session_state.logged_in:
     login_form()
-    st.image("https://images.unsplash.com/photo-1547493706-03c623b0a7c4", caption="Image of various animals", use_container_width=True)
+    # The image on the login page is now "destop.png"
+    st.image("destop.png", caption="Welcome to the Animal Classifier!", use_container_width=True)
     st.markdown("<h3>Welcome! Please log in on the left to use the Animal Classifier.</h3>", unsafe_allow_html=True)
 else:
 # ----------------------------
