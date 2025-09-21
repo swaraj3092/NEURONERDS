@@ -9,8 +9,9 @@ from io import BytesIO
 # ----------------------------
 # Page Config
 # ----------------------------
-# The page_icon parameter now uses "cow.wbp"
-st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.wbp")
+# The page_icon now uses the supported .png format.
+# Ensure 'cow_logo.png' is in the same directory as your script.
+st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow_logo.png")
 
 # ----------------------------
 # Caching Functions
@@ -191,11 +192,7 @@ else:
     with tab2:
         st.markdown("<h2>📄 Model Information</h2>", unsafe_allow_html=True)
         st.info("""
-            This classifier uses a **Convolutional Neural Network (CNN)**. 
-
-[Image of a convolutional neural network architecture]
-
-            The model was trained on a custom dataset of animal images.
+            This classifier uses a **Convolutional Neural Network (CNN)**.             The model was trained on a custom dataset of animal images.
         """)
         st.write("### Key Metrics")
         st.markdown("""
