@@ -88,11 +88,16 @@ def handle_google_login():
             st.session_state.logged_in = True
             st.session_state.user_name = user_info.get("name", "User")
             st.experimental_set_query_params()  # Clear the code param
-            st.experimental_rerun()
+            return True  # Signal success
         else:
             st.error("Failed to login. Please try again.")
+    return False
 
-handle_google_login()
+# ---------------------------- TOP LEVEL ----------------------------
+logged_in_now = handle_google_login()
+if logged_in_now:
+    st.experimental_rerun()
+
 
 # ---------------------------- LOGIN PAGE ----------------------------
 if not st.session_state.logged_in:
