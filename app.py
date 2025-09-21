@@ -112,12 +112,12 @@ h1, h2, h3 {
 
 
 /* Specific CSS to center the image and make it circular */
-.stImage {
-    display: flex; /* Use flexbox for centering */
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically if space allows */
-    margin-bottom: 20px;
+.stImage img {
+    border-radius: 50%;
+    border: 3px solid #3b5998;
+    object-fit: cover;
 }
+
 .stImage img {
     border-radius: 50%; /* Makes the image circular */
     object-fit: cover; /* Ensures the image covers the circular area */
