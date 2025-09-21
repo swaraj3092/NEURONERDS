@@ -77,6 +77,29 @@ if not st.session_state.logged_in:
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
+        # Handle OAuth redirect
+        if "code" in st.query_params:
+            try:
+                code = st.query_params["code"][0]
+                data = {
+                    "code": code,
+                    "client_id": CLIENT_ID,
+                    "client_secret": CLIENT_SECRET,
+                    "redirect_uri": REDIRECT_URI,
+                    "grant_type": "authorization_code"
+                }
+                token_resp = requests.post(TOKEN_URI, data=data).json()
+                access_token = token_resp.get("access_token")
+                if access_token:
+                    user_info = requests.get(USER_INFO_URI, params={"alt":"json"}, headers={"Authorization": f"Bearer {access_token}"}).json()
+                    st.session_state.logged_in = True
+                    st.session_state.user_name = user_info.get("name","User")
+                    st.rerun()
+                else:
+                    st.error("Failed to login. Please try again.")
+            except Exception as e:
+                st.error(f"An error occurred during authentication: {e}")
+
         # Google login button
         auth_params = {
             "client_id": CLIENT_ID,
@@ -91,7 +114,6 @@ if not st.session_state.logged_in:
             st.markdown(f'<meta http-equiv="refresh" content="0; URL={auth_url}">', unsafe_allow_html=True)
 
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
-
         # Demo login
         email = st.text_input("Email", placeholder="user@example.com")
         password = st.text_input("Password", type="password")
@@ -136,19 +158,22 @@ if st.session_state.get("logged_in"):
                 pred = model(tf.constant(img_array,dtype=tf.float32))
                 if isinstance(pred, dict) and "dense_1" in pred:
                     pred = pred["dense_1"].numpy()[0]
+                
+                # Corrected line to handle the np.int64 error
                 top3 = np.argsort(pred)[-3:][::-1]
+                
                 cols = st.columns(3)
                 for col,i in zip(cols,top3):
                     with col:
-                        st.metric(label=classes[i],value=f"{pred[i]*100:.2f}%")
+                        st.metric(label=classes[int(i)],value=f"{pred[i]*100:.2f}%")
                 if st.checkbox("Show all predictions"):
                     st.markdown("---")
                     left_col,right_col=st.columns(2)
                     sorted_idx = np.argsort(pred)[::-1]
                     half = len(sorted_idx)//2
                     for i in sorted_idx[:half]:
-                        left_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
+                        left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
                     for i in sorted_idx[half:]:
-                        right_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
+                        right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
             except Exception as e:
                 st.error(f"Error: {e}")
