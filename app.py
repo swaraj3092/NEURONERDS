@@ -72,14 +72,18 @@ else:
         img = Image.open(uploaded_file).convert("RGB")
         st.image(img, caption="Uploaded Image", use_column_width=True)
         
-        img = image.load_img(uploaded_file, target_size=(224, 224))  # adjust size
+        img = image.load_img(uploaded_file, target_size=(128, 128))  # match your model input
         img_array = image.img_to_array(img)
-        img_array = tf.expand_dims(img_array, axis=0)  # add batch dimension
+        img_array = tf.expand_dims(img_array, axis=0)  # shape becomes (1, 128, 128, 3)
+
 
 
         
         with st.spinner("Analyzing... 🔍"):
-            prediction = model.predict(img_array)[0]
+            prediction = model.predict(img_array)
+
+            st.write("Raw prediction:", prediction)
+
             top3_idx = prediction.argsort()[-3:][::-1]
             
         st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
