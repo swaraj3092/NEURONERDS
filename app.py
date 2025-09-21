@@ -164,9 +164,13 @@ if "code" in st.query_params:
                 ).json()
                 st.session_state.logged_in = True
                 st.session_state.user_name = user_info.get("name", "User")
+
+                # ✅ Clear the query params so user is redirected to main page
+                st.experimental_set_query_params()  # removes ?code=... from URL
                 st.rerun()
         except Exception as e:
             st.error(f"An error occurred during authentication: {e}")
+
 
 
 
