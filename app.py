@@ -53,7 +53,7 @@ if "just_logged_in" not in st.session_state:
     st.session_state.just_logged_in = False
 
 # ---------------------------- GOOGLE LOGIN HANDLER ----------------------------
-if "code" in st.session_state.get("query_params", st.query_params):
+if "code" in st.query_params and not st.session_state.just_logged_in:
     try:
         code = st.query_params["code"][0]
         data = {
@@ -74,8 +74,9 @@ if "code" in st.session_state.get("query_params", st.query_params):
             st.session_state.logged_in = True
             st.session_state.user_name = user_info.get("name", "User")
             st.session_state.just_logged_in = True
-            st.experimental_set_query_params()  # clear code param
-            st.experimental_rerun()
+
+            # Clear OAuth code param to prevent loop
+            st.experimental_set_query_params()
         else:
             st.error("Failed to login. Please try again.")
     except Exception as e:
@@ -112,6 +113,7 @@ if not st.session_state.logged_in:
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
+        # Google Login Button (same tab)
         auth_params = {
             "client_id": CLIENT_ID,
             "redirect_uri": REDIRECT_URI,
@@ -121,14 +123,14 @@ if not st.session_state.logged_in:
             "prompt": "consent"
         }
         auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
-        st.markdown(f'''
+        st.markdown(f"""
         <form action="{auth_url}" method="get">
             <button type="submit" style="
                 width:100%; padding:12px; font-weight:bold; border-radius:12px;
                 background-color:#4285F4; color:white; border:none; cursor:pointer;
                 ">Continue with Google 🚀</button>
         </form>
-        ''', unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
 
@@ -140,7 +142,6 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.user_name = "Demo User"
                 st.session_state.just_logged_in = True
-                st.experimental_rerun()
             else:
                 st.error("Invalid demo credentials.")
 
@@ -156,7 +157,8 @@ else:
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
     if st.button("Logout"):
         st.session_state.logged_in = False
-        st.experimental_rerun()
+        st.session_state.just_logged_in = False
+        st.session_state.user_name = "User"
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
 
