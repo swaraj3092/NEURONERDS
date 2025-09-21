@@ -77,9 +77,9 @@ div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px soli
 
 # ---------------------------- GOOGLE LOGIN HANDLER ----------------------------
 def handle_google_login():
-    if "code" in st.experimental_get_query_params():
+    if "code" in st.query_params:
         try:
-            code = st.experimental_get_query_params()["code"][0]
+            code = st.query_params["code"][0]
             data = {
                 "code": code,
                 "client_id": CLIENT_ID,
@@ -97,16 +97,23 @@ def handle_google_login():
                 ).json()
                 st.session_state.logged_in = True
                 st.session_state.user_name = user_info.get("name","User")
-                # clear code from URL
+                # Clear 'code' from URL to prevent repeated login
                 st.experimental_set_query_params()
-                st.experimental_rerun()
             else:
                 st.error("Failed to login. Please try again.")
         except Exception as e:
             st.error(f"An error occurred during authentication: {e}")
 
-# Call login handler at top
+# Call login handler at the top
 handle_google_login()
+
+# ---------------------------- LOGOUT BUTTON ----------------------------
+if st.session_state.logged_in:
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.session_state.user_name = "User"
+        # No need for st.experimental_rerun(), session_state change auto refreshes page
+
 
 # ---------------------------- LOGIN PAGE ----------------------------
 if not st.session_state.logged_in:
