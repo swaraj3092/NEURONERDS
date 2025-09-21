@@ -110,13 +110,20 @@ div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px soli
 
 # ---------------------------- LOGIN PAGE ----------------------------
 if not st.session_state.logged_in:
-    # Centered cow logo using st.image with responsive width
-    st.write("")  # add spacing at top
-    st.image("cow.png", use_column_width=True)  # ✅ scales and centers automatically
+    st.write("")  # spacing at top
+
+    # Centered small cow logo using use_container_width
+    st.image("cow.png", width=120, use_container_width=False)  # small logo
 
     # Centered headings
-    st.markdown("<h2 style='text-align:center; color:#f0f2f6; margin-top:20px;'>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; color:#ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
+    st.markdown(
+        "<h2 style='text-align:center; color:#f0f2f6; margin-top:20px;'>Welcome to Animal Classifier</h2>",
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        "<p style='text-align:center; color:#ccc;'>Sign in to continue</p>",
+        unsafe_allow_html=True
+    )
 
     # Google login button (centered)
     auth_params = {
@@ -139,7 +146,8 @@ if not st.session_state.logged_in:
                     ">Continue with Google 🚀</button>
             </a>
         </div>
-        ''', unsafe_allow_html=True
+        ''',
+        unsafe_allow_html=True
     )
 
     # OR separator
