@@ -179,17 +179,22 @@ if not st.session_state.logged_in:
             if not st.session_state.auth_initiated:
                 st.session_state.auth_initiated = True
                 code = st.query_params["code"]
-                flow = st.session_state.flow
-                flow.fetch_token(code=code)
-                credentials = flow.credentials
-                user_info = requests.get(
-                    "https://www.googleapis.com/oauth2/v1/userinfo",
-                    params={"alt": "json"},
-                    headers={"Authorization": f"Bearer {credentials.token}"}
-                ).json()
-                st.session_state.logged_in = True
-                st.session_state.user_name = user_info.get("name", "User")
-                st.rerun()
+                
+                # Check if 'flow' exists in session state before using it
+                if "flow" in st.session_state:
+                    flow = st.session_state.flow
+                    flow.fetch_token(code=code)
+                    credentials = flow.credentials
+                    user_info = requests.get(
+                        "https://www.googleapis.com/oauth2/v1/userinfo",
+                        params={"alt": "json"},
+                        headers={"Authorization": f"Bearer {credentials.token}"}
+                    ).json()
+                    st.session_state.logged_in = True
+                    st.session_state.user_name = user_info.get("name", "User")
+                    st.rerun()
+                else:
+                    st.error("Authentication flow not found. Please try logging in again.")
 
         # Google login button
         google_btn = st.button("Continue with Google", use_container_width=True)
@@ -237,76 +242,56 @@ if not st.session_state.logged_in:
 
         st.markdown('</div>', unsafe_allow_html=True)
 
+else:
 # ---------------------------- MAIN APP ----------------------------
-if st.session_state.get("logged_in", False):
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
 
     if st.button("Logout"):
         st.session_state.logged_in = False
-        st.experimental_rerun() # You can now use st.rerun() here
+        st.rerun()
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p>Choose an input method to see AI prediction instantly!</p>", unsafe_allow_html=True)
 
-    tab1, tab2, tab3 = st.tabs(["📊 Classifier", "📄 Model Info", "💡 About App"])
+    # Removed tab2 and tab3
+    # The main classifier logic is now in a single, default view
+    input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
+    input_file = None
+    if input_method == "📁 Upload Image":
+        input_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
+    elif input_method == "📸 Use Camera":
+        input_file = st.camera_input("Capture an image using your camera")
 
-    with tab1:
-        input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
-        input_file = None
-        if input_method == "📁 Upload Image":
-            input_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
-        elif input_method == "📸 Use Camera":
-            input_file = st.camera_input("Capture an image using your camera")
-
-        if input_file:
-            img = Image.open(input_file).convert("RGB")
-            st.image(img, caption="Input Image", use_container_width=True)
-            img_resized = img.resize((128, 128))
-            img_array = np.array(img_resized, dtype=np.float32)/255.0
-            img_array = np.expand_dims(img_array, axis=0)
-            with st.spinner("Analyzing... 🔍"):
-                try:
-                    prediction_output = model(tf.constant(img_array, dtype=tf.float32))
-                    if isinstance(prediction_output, dict) and "dense_1" in prediction_output:
-                        prediction = prediction_output["dense_1"].numpy()[0]
-                    else:
-                        st.error("Unexpected model output format.")
-                        prediction = None
-                except Exception as e:
-                    st.error(f"Error: {e}")
+    if input_file:
+        img = Image.open(input_file).convert("RGB")
+        st.image(img, caption="Input Image", use_container_width=True)
+        img_resized = img.resize((128, 128))
+        img_array = np.array(img_resized, dtype=np.float32)/255.0
+        img_array = np.expand_dims(img_array, axis=0)
+        with st.spinner("Analyzing... 🔍"):
+            try:
+                prediction_output = model(tf.constant(img_array, dtype=tf.float32))
+                if isinstance(prediction_output, dict) and "dense_1" in prediction_output:
+                    prediction = prediction_output["dense_1"].numpy()[0]
+                else:
+                    st.error("Unexpected model output format.")
                     prediction = None
-            if prediction is not None:
-                st.subheader("Top Predictions")
-                top3_idx = np.argsort(prediction)[-3:][::-1]
-                cols = st.columns(3)
-                for col, i in zip(cols, top3_idx):
-                    with col:
-                        st.metric(label=classes[i], value=f"{prediction[i]*100:.2f}%")
-                if st.checkbox("Show all predictions"):
-                    st.markdown("---")
-                    left_col, right_col = st.columns(2)
-                    sorted_idx = np.argsort(prediction)[::-1]
-                    half = len(sorted_idx)//2
-                    for i in sorted_idx[:half]:
-                        left_col.markdown(f"**{classes[i]}:** {prediction[i]*100:.4f}%")
-                    for i in sorted_idx[half:]:
-                        right_col.markdown(f"**{classes[i]}:** {prediction[i]*100:.4f}%")
-
-    with tab2:
-        st.markdown("<h2>📄 Model Information</h2>", unsafe_allow_html=True)
-        st.info("CNN model trained on custom animal dataset.")
-        st.markdown("""
-        | Metric | Value |
-        | :--- | :--- |
-        | **Accuracy** | 92.5% |
-        | **Precision** | 91.2% |
-        | **Recall** | 90.8% |
-        """, unsafe_allow_html=True)
-
-    with tab3:
-        st.markdown("<h2>💡 About this App</h2>", unsafe_allow_html=True)
-        st.info("""
-        Web app demo of an animal classifier with Streamlit & TensorFlow.
-        Allows image upload or camera capture for real-time prediction.
-        **Developers:** BPA Batch 2024
-        """)
+            except Exception as e:
+                st.error(f"Error: {e}")
+                prediction = None
+        if prediction is not None:
+            st.subheader("Top Predictions")
+            top3_idx = np.argsort(prediction)[-3:][::-1]
+            cols = st.columns(3)
+            for col, i in zip(cols, top3_idx):
+                with col:
+                    st.metric(label=classes[i], value=f"{prediction[i]*100:.2f}%")
+            if st.checkbox("Show all predictions"):
+                st.markdown("---")
+                left_col, right_col = st.columns(2)
+                sorted_idx = np.argsort(prediction)[::-1]
+                half = len(sorted_idx)//2
+                for i in sorted_idx[:half]:
+                    left_col.markdown(f"**{classes[i]}:** {prediction[i]*100:.4f}%")
+                for i in sorted_idx[half:]:
+                    right_col.markdown(f"**{classes[i]}:** {prediction[i]*100:.4f}%")
