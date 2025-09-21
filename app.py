@@ -104,7 +104,7 @@ if not st.session_state.logged_in:
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
-        # Google login button - REPLACED WITH DIRECT HTML LINK
+        # Google login button
         auth_params = {
             "client_id": CLIENT_ID,
             "redirect_uri": REDIRECT_URI,
