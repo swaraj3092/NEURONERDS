@@ -255,47 +255,62 @@ if not st.session_state.logged_in:
 
 
 # ---------------------------- MAIN APP ----------------------------
-else:
+if st.session_state.logged_in:
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
+    
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
+
     input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
     input_file = None
-    if input_method=="📁 Upload Image":
+
+    if input_method == "📁 Upload Image":
         input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
-    elif input_method=="📸 Use Camera":
+    elif input_method == "📸 Use Camera":
         input_file = st.camera_input("Capture an image")
-    
+
     if input_file:
         img = Image.open(input_file).convert("RGB")
         st.image(img, use_container_width=True)
-        img_array = np.array(img.resize((128,128)), dtype=np.float32)/255.0
+
+        # Preprocess image for model
+        img_array = np.array(img.resize((128,128)), dtype=np.float32) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
+
         with st.spinner("Analyzing... 🔍"):
             try:
                 pred = model(tf.constant(img_array, dtype=tf.float32))
+
+                # Handle dict output from TFSMLayer
                 if isinstance(pred, dict) and "dense_1" in pred:
-                    pred = pred["dense_1"].numpy()[0]
-                else:
-                    pred = pred.numpy()[0]
+                    pred = pred["dense_1"]
                 
+                # Convert to numpy if tensor
+                if hasattr(pred, "numpy"):
+                    pred = pred.numpy()
+                
+                pred = np.array(pred[0])  # ensure 1D array
+
+                # Show top 3 predictions
                 top3 = np.argsort(pred)[-3:][::-1]
-                
                 cols = st.columns(3)
-                for col,i in zip(cols,top3):
+                for col, i in zip(cols, top3):
                     with col:
-                        st.metric(label=classes[int(i)],value=f"{pred[i]*100:.2f}%")
+                        st.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
+
+                # Optionally show all predictions
                 if st.checkbox("Show all predictions"):
                     st.markdown("---")
-                    left_col,right_col=st.columns(2)
+                    left_col, right_col = st.columns(2)
                     sorted_idx = np.argsort(pred)[::-1]
                     half = len(sorted_idx)//2
                     for i in sorted_idx[:half]:
                         left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
                     for i in sorted_idx[half:]:
                         right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+
             except Exception as e:
                 st.error(f"Error: {e}")
