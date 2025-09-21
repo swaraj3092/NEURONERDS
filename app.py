@@ -80,7 +80,7 @@ else:
 
             # Ensure classes length matches prediction length
             # Automatically create class names from prediction length
-            3classes = [f"class_{i}" for i in range(len(prediction))]
+            #classes = [f"class_{i}" for i in range(len(prediction))]
 
 
             # Top 3 predictions
