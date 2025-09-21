@@ -15,6 +15,7 @@ import json
 import requests
 import urllib.parse
 
+
 # ---------------------------- Page Config ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
 
@@ -52,34 +53,6 @@ if "logged_in" not in st.session_state:
 if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
 
-# ---------------------------- GOOGLE LOGIN HANDLER (Moved to top) ----------------------------
-if "code" in st.query_params:
-    try:
-        code = st.query_params["code"][0]
-        data = {
-            "code": code,
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
-            "redirect_uri": REDIRECT_URI,
-            "grant_type": "authorization_code"
-        }
-        token_resp = requests.post(TOKEN_URI, data=data).json()
-        access_token = token_resp.get("access_token")
-        if access_token:
-            user_info = requests.get(
-                USER_INFO_URI,
-                params={"alt": "json"},
-                headers={"Authorization": f"Bearer {access_token}"}
-            ).json()
-            st.session_state.logged_in = True
-            st.session_state.user_name = user_info.get("name","User")
-            # Clear query params and rerun
-            st.rerun()
-        else:
-            st.error("Failed to login. Please try again.")
-    except Exception as e:
-        st.error(f"An error occurred during authentication: {e}")
-
 # ---------------------------- CSS Styling ----------------------------
 st.markdown("""
 <style>
@@ -101,6 +74,39 @@ div[data-testid="stImage"] { display: flex !important; justify-content: center !
 div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px solid #3b5998; object-fit: cover; margin: auto !important; }
 </style>
 """, unsafe_allow_html=True)
+
+# ---------------------------- GOOGLE LOGIN HANDLER ----------------------------
+def handle_google_login():
+    if "code" in st.experimental_get_query_params():
+        try:
+            code = st.experimental_get_query_params()["code"][0]
+            data = {
+                "code": code,
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+                "redirect_uri": REDIRECT_URI,
+                "grant_type": "authorization_code"
+            }
+            token_resp = requests.post(TOKEN_URI, data=data).json()
+            access_token = token_resp.get("access_token")
+            if access_token:
+                user_info = requests.get(
+                    USER_INFO_URI,
+                    params={"alt": "json"},
+                    headers={"Authorization": f"Bearer {access_token}"}
+                ).json()
+                st.session_state.logged_in = True
+                st.session_state.user_name = user_info.get("name","User")
+                # clear code from URL
+                st.experimental_set_query_params()
+                st.experimental_rerun()
+            else:
+                st.error("Failed to login. Please try again.")
+        except Exception as e:
+            st.error(f"An error occurred during authentication: {e}")
+
+# Call login handler at top
+handle_google_login()
 
 # ---------------------------- LOGIN PAGE ----------------------------
 if not st.session_state.logged_in:
@@ -140,7 +146,7 @@ if not st.session_state.logged_in:
             if email=="user" and password=="demo123":
                 st.session_state.logged_in = True
                 st.session_state.user_name = "Demo User"
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.error("Invalid demo credentials.")
 
@@ -156,7 +162,7 @@ else:
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
     if st.button("Logout"):
         st.session_state.logged_in = False
-        st.rerun()
+        st.experimental_rerun()
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
 
@@ -177,6 +183,8 @@ else:
                 pred = model(tf.constant(img_array,dtype=tf.float32))
                 if isinstance(pred, dict) and "dense_1" in pred:
                     pred = pred["dense_1"].numpy()[0]
+                else:
+                    pred = pred.numpy()[0]
                 
                 top3 = np.argsort(pred)[-3:][::-1]
                 
@@ -184,14 +192,15 @@ else:
                 for col,i in zip(cols,top3):
                     with col:
                         st.metric(label=classes[int(i)],value=f"{pred[i]*100:.2f}%")
+                
                 if st.checkbox("Show all predictions"):
                     st.markdown("---")
                     left_col,right_col=st.columns(2)
                     sorted_idx = np.argsort(pred)[::-1]
                     half = len(sorted_idx)//2
                     for i in sorted_idx[:half]:
-                        left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+                        left_col.markdown(f"{classes[int(i)]}:** {pred[i]*100:.4f}%")
                     for i in sorted_idx[half:]:
-                        right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+                        right_col.markdown(f"{classes[int(i)]}:** {pred[i]*100:.4f}%")
             except Exception as e:
                 st.error(f"Error: {e}")
