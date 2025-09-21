@@ -5,9 +5,11 @@ import tensorflow as tf
 import json
 
 # ----------------------------
-# Model Load
-# ----------------------------
-model = tf.keras.models.load_model("models/animal_classifier.keras")
+from keras.layers import TFSMLayer
+
+# Load model properly
+model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
+
 
 # ----------------------------
 # Page Config
