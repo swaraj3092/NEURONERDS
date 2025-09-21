@@ -70,8 +70,8 @@ div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px soli
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------- LOGIN PAGE ----------------------------
-# Handle OAuth redirect logic at the top of the script
+# ---------------------------- Login Logic ----------------------------
+# Handle OAuth redirect at the very top of the script
 if "code" in st.query_params:
     try:
         code = st.query_params["code"][0]
@@ -94,7 +94,9 @@ if "code" in st.query_params:
     except Exception as e:
         st.error(f"An error occurred during authentication: {e}")
 
+# ---------------------------- PAGE LAYOUT ----------------------------
 if not st.session_state.logged_in:
+    # Login page UI
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
@@ -113,6 +115,7 @@ if not st.session_state.logged_in:
         }
         auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
         if st.button("Continue with Google", use_container_width=True):
+            st.session_state.auth_url = auth_url
             st.markdown(f'<meta http-equiv="refresh" content="0; URL={auth_url}">', unsafe_allow_html=True)
 
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
@@ -136,6 +139,7 @@ if not st.session_state.logged_in:
 
 # ---------------------------- MAIN APP ----------------------------
 else:
+    # Main app UI
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
     if st.button("Logout"):
         st.session_state.logged_in = False
