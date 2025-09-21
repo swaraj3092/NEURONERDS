@@ -147,13 +147,13 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    # Login UI
+    # This is the LOGIN UI which will be displayed first
     with st.container():
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         
         # Logo: circular, smaller, and centered.
         # Ensure cow.png is in the same directory as your script.
-        st.image("cow.png", width=100, use_column_width=False, output_format="PNG")
+        st.image("cow.png", width=100) # use_column_width is now removed from here
         
         # Welcome Text
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
@@ -192,7 +192,7 @@ if not st.session_state.logged_in:
     
 else:
 # ----------------------------
-# Main App (Hidden until logged in)
+# This is the MAIN APP, displayed only AFTER login
 # ----------------------------
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p>Choose an input method to see AI prediction instantly!</p>", unsafe_allow_html=True)
@@ -259,15 +259,6 @@ else:
         st.markdown("<h2>📄 Model Information</h2>", unsafe_allow_html=True)
         st.info("""
             This classifier uses a **Convolutional Neural Network (CNN)**. 
-
-
-
-
-
-[Image of a convolutional neural network architecture]
-
-
-
             The model was trained on a custom dataset of animal images.
         """)
         st.write("### Key Metrics")
