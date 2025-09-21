@@ -81,41 +81,44 @@ if not st.session_state.logged_in:
                 code = st.query_params["code"][0]
                 data = {
                     "code": code,
-                    "client_id": CLIENT_ID,
-                    "client_secret": CLIENT_SECRET,
-                    "redirect_uri": REDIRECT_URI,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "redirect_uri": redirect_uri,
                     "grant_type": "authorization_code"
                 }
                 token_resp = requests.post(TOKEN_URI, data=data).json()
                 access_token = token_resp.get("access_token")
                 if access_token:
-                    user_info = requests.get(USER_INFO_URI, params={"alt":"json"}, headers={"Authorization": f"Bearer {access_token}"}).json()
+                    user_info = requests.get(
+                        USER_INFO_URI,
+                        params={"alt":"json"},
+                        headers={"Authorization": f"Bearer {access_token}"}
+                    ).json()
                     st.session_state.logged_in = True
                     st.session_state.user_name = user_info.get("name","User")
+                    
+                    # Remove 'code' from URL and rerun
+                    st.experimental_set_query_params()
                     st.rerun()
                 else:
                     st.error("Failed to login. Please try again.")
             except Exception as e:
                 st.error(f"An error occurred during authentication: {e}")
 
-        # Google login button (opens in a new tab)
+        # Google login button (opens in same tab)
         auth_params = {
-            "client_id": CLIENT_ID,
-            "redirect_uri": REDIRECT_URI,
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
             "response_type": "code",
             "scope": SCOPES,
             "access_type": "offline",
             "prompt": "consent"
         }
         auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
-        st.markdown(f'''
-        <a href="{auth_url}" target="_blank">
-            <button style="
-                width:100%; padding:12px; font-weight:bold; border-radius:12px;
-                background-color:#3b5998; color:white; border:none; cursor:pointer;
-            ">Continue with Google</button>
-        </a>
-        ''', unsafe_allow_html=True)
+        st.markdown(
+            f'<a href="{auth_url}"><button class="google-btn">Continue with Google</button></a>',
+            unsafe_allow_html=True
+        )
 
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
 
@@ -124,8 +127,8 @@ if not st.session_state.logged_in:
         password = st.text_input("Password", type="password")
         if st.button("Login Demo"):
             if email=="user" and password=="demo123":
-                st.session_state.logged_in = True
-                st.session_state.user_name = "Demo User"
+                st.session_state.logged_in=True
+                st.session_state.user_name="Demo User"
                 st.rerun()
             else:
                 st.error("Invalid demo credentials.")
@@ -136,6 +139,7 @@ if not st.session_state.logged_in:
         with col_link2:
             st.markdown("<p style='text-align:right;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ---------------------------- MAIN APP ----------------------------
 if st.session_state.get("logged_in"):
