@@ -9,7 +9,8 @@ from io import BytesIO
 # ----------------------------
 # Page Config
 # ----------------------------
-st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.webp")
+# Assumes you have a cow_logo.png file in your project directory
+st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow_logo.png")
 
 # ----------------------------
 # Caching Functions
@@ -111,7 +112,6 @@ def login_form():
         login_btn = st.button("Login")
 
         if login_btn:
-            # Updated username and password
             if username == "user" and password == "demo123":
                 st.session_state.logged_in = True
                 st.success("Login Successful!")
