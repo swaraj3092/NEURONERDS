@@ -166,19 +166,54 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    # This is the LOGIN UI which will be displayed first
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         
         # Title
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
+
+        # Center cow logo properly
+        st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
+        st.image("cow.png", width=100, use_container_width=False)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Google Button
+        st.markdown(
+            '<div class="google-btn">'
+            '<img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_Google_g_darkmode_2020.svg" width="20">'
+            ' Continue with Google</div>',
+            unsafe_allow_html=True
+        )
         
-        # Center logo using st.image with custom CSS wrapper
-        with st.container():
-            st.markdown('<div class="login-logo-container">', unsafe_allow_html=True)
-            st.image("cow.png", width=100)
-            st.markdown('</div>', unsafe_allow_html=True)
+        # OR Separator
+        st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
+        
+        # Login Form Fields
+        email = st.text_input("Email", placeholder="you@example.com", label_visibility="collapsed")
+        password = st.text_input("Password", type="password", label_visibility="collapsed")
+        
+        # Login Button
+        login_btn = st.button("Sign in", use_container_width=True)
+        
+        # Links
+        col_link1, col_link2 = st.columns(2)
+        with col_link1:
+            st.markdown("<p style='text-align: left;'><a href='#'>Forgot password?</a></p>", unsafe_allow_html=True)
+        with col_link2:
+            st.markdown("<p style='text-align: right;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
+
+        # Login validation logic
+        if login_btn:
+            if email == "user" and password == "demo123":
+                st.session_state.logged_in = True
+                st.toast("Login Successful!")
+                st.rerun()
+            else:
+                st.error("Invalid credentials. Try again.")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
 
         # Sign in to continue text
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
