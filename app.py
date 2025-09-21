@@ -120,7 +120,6 @@ def login_form():
 
 if not st.session_state.logged_in:
     login_form()
-    # Corrected parameter: use_container_width instead of use_column_width
     st.image("https://images.unsplash.com/photo-1547493706-03c623b0a7c4", caption="Image of various animals", use_container_width=True)
     st.markdown("<h3>Welcome! Please log in on the left to use the Animal Classifier.</h3>", unsafe_allow_html=True)
 else:
@@ -134,33 +133,17 @@ else:
 
     with tab1:
         # Input choice with icons
-        input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera", "🖼️ Use Example Image"])
+        # Removed the "🖼️ Use Example Image" option
+        input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
 
         input_file = None
         if input_method == "📁 Upload Image":
             input_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
         elif input_method == "📸 Use Camera":
             input_file = st.camera_input("Capture an image using your camera")
-        elif input_method == "🖼️ Use Example Image":
-            example_images = {
-                "Tiger": "https://images.unsplash.com/photo-1582297116773-f1124618776b",
-                "Dog": "https://images.unsplash.com/photo-1596492723386-b41315668352",
-                "Cat": "https://images.unsplash.com/photo-1574144702945-b46184a4d6ae"
-            }
-            example_choice = st.selectbox("Select an example image:", list(example_images.keys()))
-            if example_choice:
-                # Load example image from URL
-                try:
-                    from urllib.request import urlopen
-                    with urlopen(example_images[example_choice]) as response:
-                        input_file = BytesIO(response.read())
-                except Exception as e:
-                    st.error(f"Could not load example image: {e}")
-                    input_file = None
 
         if input_file:
             img = Image.open(input_file).convert("RGB")
-            # Corrected parameter: use_container_width instead of use_column_width
             st.image(img, caption="Input Image", use_container_width=True)
 
             img_resized = img.resize((128, 128))
@@ -209,6 +192,9 @@ else:
         st.markdown("<h2>📄 Model Information</h2>", unsafe_allow_html=True)
         st.info("""
             This classifier uses a **Convolutional Neural Network (CNN)**. 
+
+[Image of a convolutional neural network architecture]
+
             The model was trained on a custom dataset of animal images.
         """)
         st.write("### Key Metrics")
@@ -219,7 +205,7 @@ else:
         | **Precision** | 91.2% |
         | **Recall** | 90.8% |
         """, unsafe_allow_html=True)
-        
+
     with tab3:
         st.markdown("<h2>💡 About this App</h2>", unsafe_allow_html=True)
         st.info("""
