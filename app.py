@@ -238,13 +238,16 @@ if not st.session_state.logged_in:
 
 
 
+# ---------------------------- MAIN APP ----------------------------
 if st.session_state.logged_in:
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
 
+    # Logout button
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
 
+    # Header
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
 
     # -------------------- Tabs --------------------
@@ -252,6 +255,10 @@ if st.session_state.logged_in:
 
     # -------------------- Tab 1: Classifier --------------------
     with tab1:
+        # Centered small cow logo
+        st.image("cow.png", width=80, use_container_width=False)
+
+        # Input method selection
         input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
         input_file = None
 
@@ -272,14 +279,19 @@ if st.session_state.logged_in:
                 try:
                     # Prediction
                     pred = model(tf.constant(img_array, dtype=tf.float32))
+
+                    # Handle dict output from TFSMLayer
                     if isinstance(pred, dict):
                         if "dense_1" in pred:
                             pred = pred["dense_1"]
                         else:
                             pred = list(pred.values())[0]
+
+                    # Convert tensor to numpy if needed
                     if hasattr(pred, "numpy"):
                         pred = pred.numpy()
-                    pred = np.array(pred[0])
+
+                    pred = np.array(pred[0])  # ensure 1D array
 
                     if pred.size == 0:
                         st.error("Model returned empty prediction.")
@@ -302,7 +314,7 @@ if st.session_state.logged_in:
                             for i in sorted_idx[half:]:
                                 right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
 
-                        # Save to history
+                        # -------------------- Save to History --------------------
                         from datetime import datetime
                         import io
                         buffer = io.BytesIO()
@@ -324,26 +336,32 @@ if st.session_state.logged_in:
         if len(st.session_state.history) == 0:
             st.info("No history yet.")
         else:
-            for entry in reversed(st.session_state.history):
-    # Convert image bytes to base64
-    image_base64 = base64.b64encode(entry["image"]).decode("utf-8")
-    
-    # Get top 3 predictions
-    top3_idx = np.argsort(entry["predictions"])[-3:][::-1]
-    top3_text = ", ".join([f"{classes[int(i)]}: {entry['predictions'][i]*100:.2f}%" for i in top3_idx])
-    
-    # Display card
-    st.markdown(f"""
-    <div style='background: rgba(255,255,255,0.1); padding:15px; border-radius:15px; 
-                display:flex; align-items:center; margin-bottom:15px; 
-                box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: transform 0.3s ease;'>
-        <img src="data:image/png;base64,{image_base64}" width="80" style="border-radius:12px; margin-right:15px;">
-        <div>
-            <b>Time:</b> {entry['timestamp']}<br>
-            <b>Top 3:</b> {top3_text}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+            import base64
 
+            for entry in reversed(st.session_state.history):  # latest first
+                # Convert image bytes to base64 for HTML
+                image_base64 = base64.b64encode(entry["image"]).decode("utf-8")
 
+                # Get top 3 predictions
+                top3_idx = np.argsort(entry["predictions"])[-3:][::-1]
+                top3_text = ", ".join([f"{classes[int(i)]}: {entry['predictions'][i]*100:.2f}%" for i in top3_idx])
 
+                # Display as card
+                st.markdown(f"""
+                <div style='
+                    background: rgba(255,255,255,0.1); 
+                    padding:15px; 
+                    border-radius:15px; 
+                    display:flex; 
+                    align-items:center; 
+                    margin-bottom:15px; 
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.3); 
+                    transition: transform 0.3s ease;
+                ' onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+                    <img src="data:image/png;base64,{image_base64}" width="80" style="border-radius:12px; margin-right:15px;">
+                    <div>
+                        <b>Time:</b> {entry['timestamp']}<br>
+                        <b>Top 3 Predictions:</b> {top3_text}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
