@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 from keras.layers import TFSMLayer
 import json
+from io import BytesIO
 
 # ----------------------------
 # Page Config
@@ -142,6 +143,19 @@ a {
 a:hover {
     text-decoration: underline;
 }
+/* New CSS to style the image and its container correctly */
+.login-logo-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+.login-logo-container img {
+    border-radius: 50%;
+    width: 100px; /* Make sure the image is square */
+    height: 100px;
+    object-fit: cover;
+    border: 3px solid #3b5998;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -159,16 +173,15 @@ if not st.session_state.logged_in:
         
         # Title
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
+        
+        # Center logo using st.image with custom CSS wrapper
+        with st.container():
+            st.markdown('<div class="login-logo-container">', unsafe_allow_html=True)
+            st.image("cow.png", width=100)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        # Center logo (cow image)
-        st.markdown(
-            """
-            <div style="display: flex; justify-content: center; align-items: center; margin: 20px 0;">
-                <img src="cow.png" alt="logo" style="width:100px; height:100px; border-radius:50%; border:3px solid #3b5998;">
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        # Sign in to continue text
+        st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
         # Google Button
         st.markdown('<div class="google-btn"> <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_Google_g_darkmode_2020.svg" width="20"> Continue with Google</div>', unsafe_allow_html=True)
@@ -202,9 +215,9 @@ if not st.session_state.logged_in:
         st.markdown('</div>', unsafe_allow_html=True)
     
 else:
-    # ----------------------------
-    # This is the MAIN APP, displayed only AFTER login
-    # ----------------------------
+# ----------------------------
+# This is the MAIN APP, displayed only AFTER login
+# ----------------------------
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p>Choose an input method to see AI prediction instantly!</p>", unsafe_allow_html=True)
 
@@ -252,8 +265,10 @@ else:
                 if show_all:
                     st.markdown("---")
                     st.markdown("<h2>All Predictions:</h2>", unsafe_allow_html=True)
+                    
                     left_col, right_col = st.columns(2)
                     sorted_idx = np.argsort(prediction)[::-1]
+                    
                     half = len(sorted_idx) // 2
                     for i in sorted_idx[:half]:
                         left_col.markdown(f"**{classes[i]}:** {prediction[i]*100:.4f}%")
@@ -283,3 +298,4 @@ else:
             
             **Developers:** BPA Batch 2024
         """)
+        
