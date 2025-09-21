@@ -62,10 +62,10 @@ else:
         img = Image.open(uploaded_file).convert("RGB")
         st.image(img, caption="Uploaded Image", use_column_width=True)
         
-        # Resize to model input size
-        img = img.resize((128, 128))
-        img_array = np.array(img)/255.0
-        img_array = np.expand_dims(img_array, axis=0)
+        img = img.resize((128,128))
+        img_array = image.img_to_array(img)
+        img_array = np.expand_dims(img_array, axis=0) / 255.0
+
         
         with st.spinner("Analyzing... 🔍"):
             prediction = model.predict(img_array)[0]
