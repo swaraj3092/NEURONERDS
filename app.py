@@ -156,6 +156,9 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
+if "history" not in st.session_state:
+    st.session_state.history = []  # stores uploaded images, predictions, timestamps
+
 
 # ---------------------------- GOOGLE LOGIN HANDLER ----------------------------
 if "code" in st.query_params:
@@ -257,7 +260,7 @@ if not st.session_state.logged_in:
 # ---------------------------- MAIN APP ----------------------------
 if st.session_state.logged_in:
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
-    
+
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
@@ -282,7 +285,7 @@ if st.session_state.logged_in:
 
         with st.spinner("Analyzing... 🔍"):
             try:
-                # Get model prediction
+                # Get prediction
                 pred = model(tf.constant(img_array, dtype=tf.float32))
 
                 # Handle dict output
@@ -290,17 +293,14 @@ if st.session_state.logged_in:
                     if "dense_1" in pred:
                         pred = pred["dense_1"]
                     else:
-                        # pick the first key if not known
                         pred = list(pred.values())[0]
 
                 # Convert tensor to numpy if necessary
                 if hasattr(pred, "numpy"):
                     pred = pred.numpy()
 
-                # Ensure 1D array
-                pred = np.array(pred[0])
+                pred = np.array(pred[0])  # ensure 1D array
 
-                # Check for empty or invalid output
                 if pred.size == 0:
                     st.error("Model returned empty prediction. Check input or model.")
                 else:
@@ -322,7 +322,37 @@ if st.session_state.logged_in:
                         for i in sorted_idx[half:]:
                             right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
 
+                    # -------------------- Save to History --------------------
+                    from datetime import datetime
+                    import io
+                    buffer = io.BytesIO()
+                    img.save(buffer, format="PNG")
+                    image_bytes = buffer.getvalue()
+
+                    st.session_state.history.append({
+                        "image": image_bytes,
+                        "predictions": pred.tolist(),
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    })
+
             except Exception as e:
                 st.error(f"Prediction error: {e}")
 
-                st.error(f"Error: {e}")
+    # ---------------------------- HISTORY DASHBOARD ----------------------------
+    st.markdown("---")
+    st.markdown("<h2>📊 Prediction History</h2>", unsafe_allow_html=True)
+
+    if len(st.session_state.history) == 0:
+        st.info("No history yet.")
+    else:
+        for entry in reversed(st.session_state.history):  # latest first
+            cols = st.columns([1,2])
+            with cols[0]:
+                st.image(entry["image"], width=100)
+            with cols[1]:
+                st.markdown(f"**Time:** {entry['timestamp']}")
+                top3_idx = np.argsort(entry["predictions"])[-3:][::-1]
+                for i in top3_idx:
+                    st.markdown(f"- {classes[int(i)]}: {entry['predictions'][i]*100:.2f}%")
+            st.markdown("---")
+
