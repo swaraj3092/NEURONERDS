@@ -9,7 +9,9 @@ import time
 # ----------------------------
 # Load model & classes
 # ----------------------------
-model = load_model("models/animal_classifier.keras")
+# Load model for inference only (skip optimizer)
+model = load_model("models/animal_classifier.keras", compile=False)
+
 with open("models/model.json", "r") as f:
     classes = json.load(f)
 
@@ -47,7 +49,6 @@ if not st.session_state.logged_in:
         if username == "bpa" and password == "batch":  # simple authentication
             st.session_state.logged_in = True
             st.success("Login Successful! Redirecting...")
-            time.sleep(1)
             st.experimental_rerun()
         else:
             st.error("Invalid credentials. Try again.")
@@ -65,7 +66,10 @@ else:
         img = Image.open(uploaded_file)
         st.image(img, caption="Uploaded Image", use_column_width=True)
         
-        img = img.resize((224,224))
+        # ----------------------------
+        # Resize to model input size
+        # ----------------------------
+        img = img.resize((128, 128))  # ✅ Changed from 224x224 to 128x128
         img_array = image.img_to_array(img)
         img_array = np.expand_dims(img_array, axis=0)/255.0
         
