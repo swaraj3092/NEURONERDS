@@ -37,7 +37,7 @@ model = load_model()
 classes = load_classes()
 
 # ----------------------------
-# Modern Light CSS Styling (Adjusted for centering and dark background on login)
+# Modern Light CSS Styling
 # ----------------------------
 st.markdown("""
 <style>
@@ -54,8 +54,6 @@ body {
     padding: 2rem; /* Add some padding */
     border-radius: 10px; /* Rounded corners for the main app container */
 }
-
-
 h1, h2, h3 {
     color: #f0f2f6; /* Light header text for login page */
     text-align: center;
@@ -112,14 +110,12 @@ h1, h2, h3 {
 }
 
 /* Specific CSS to center the image and make it circular */
-/* The stImage class targets the container div Streamlit wraps the image in */
 .stImage {
     display: flex; /* Use flexbox for centering */
     justify-content: center; /* Center horizontally */
     align-items: center; /* Center vertically if space allows */
     margin-bottom: 20px;
 }
-
 .stImage img {
     border-radius: 50%; /* Makes the image circular */
     object-fit: cover; /* Ensures the image covers the circular area */
@@ -177,11 +173,12 @@ if not st.session_state.logged_in:
     # Centered container for the login form elements
     col1, col2, col3 = st.columns([1, 2, 1]) # Use columns to push the login card to center
     with col2: # All login elements will be inside the middle column
+        # Removing the unnecessary container and styling the card directly
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         
         # Logo: circular, smaller, and centered.
         # Ensure cow.png is in the same directory as your script.
-        st.image("cow.png", width=100) # This image will now be centered and circular via CSS
+        st.image("cow.png", width=100)
         
         # Welcome Text
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
