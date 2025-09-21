@@ -38,6 +38,7 @@ classes = load_classes()
 CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
 CLIENT_SECRET = "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"
 REDIRECT_URI = "https://neuronerds.streamlit.app/"
+
 SCOPES = "openid email profile"
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URI = "https://oauth2.googleapis.com/token"
@@ -50,7 +51,7 @@ if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
 
 # ---------------------------- GOOGLE LOGIN HANDLER ----------------------------
-if "code" in st.query_params and not st.session_state.get("logged_in", False):
+if "code" in st.query_params:
     try:
         code = st.query_params["code"][0]
         data = {
@@ -68,17 +69,13 @@ if "code" in st.query_params and not st.session_state.get("logged_in", False):
                 params={"alt": "json"},
                 headers={"Authorization": f"Bearer {access_token}"}
             ).json()
-
             st.session_state.logged_in = True
             st.session_state.user_name = user_info.get("name", "User")
-
-            # Clear code from URL to avoid reprocessing
-            st.experimental_set_query_params()
             st.experimental_rerun()
         else:
-            st.error("Failed login. Please try again.")
+            st.error("Failed to login. Please try again.")
     except Exception as e:
-        st.error(f"Error during Google login: {e}")
+        st.error(f"An error occurred during authentication: {e}")
 
 # ---------------------------- CSS Styling ----------------------------
 st.markdown("""
@@ -104,33 +101,30 @@ div[data-testid="stImage"] img { border-radius: 50% !important; border: 3px soli
 
 # ---------------------------- LOGIN PAGE ----------------------------
 if not st.session_state.logged_in:
-    col1, col2, col3 = st.columns([1,2,1])
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         st.image("cow.png", width=120)
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
-        # ---------------------------- GOOGLE LOGIN BUTTON (same tab) ----------------------------
         auth_params = {
-        "client_id": CLIENT_ID,
-        "redirect_uri": REDIRECT_URI,
-        "response_type": "code",
-        "scope": SCOPES,
-        "access_type": "offline",
-        "prompt": "consent"
-    }
-    auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
-
-    st.markdown(f"""
-    <form action="{auth_url}" method="get">
-        <button type="submit" style="
-            width:100%; padding:12px; font-weight:bold; border-radius:12px;
-            background-color:#4285F4; color:white; border:none; cursor:pointer;
-            ">Continue with Google 🚀</button>
-    </form>
-    """, unsafe_allow_html=True)
-
+            "client_id": CLIENT_ID,
+            "redirect_uri": REDIRECT_URI,
+            "response_type": "code",
+            "scope": SCOPES,
+            "access_type": "offline",
+            "prompt": "consent"
+        }
+        auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
+        st.markdown(f'''
+        <a href="{auth_url}" target="_blank">
+            <button style="
+                width:100%; padding:12px; font-weight:bold; border-radius:12px;
+                background-color:#4285F4; color:white; border:none; cursor:pointer;
+                ">Continue with Google 🚀</button>
+        </a>
+        ''', unsafe_allow_html=True)
 
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
 
@@ -138,10 +132,10 @@ if not st.session_state.logged_in:
         email = st.text_input("Email", placeholder="user@example.com")
         password = st.text_input("Password", type="password")
         if st.button("Login Demo"):
-            if email=="user" and password=="demo123":
+            if email == "user" and password == "demo123":
                 st.session_state.logged_in = True
                 st.session_state.user_name = "Demo User"
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.error("Invalid demo credentials.")
 
@@ -157,32 +151,32 @@ else:
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
     if st.button("Logout"):
         st.session_state.logged_in = False
-        st.rerun()
+        st.experimental_rerun()
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
 
     input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
     input_file = None
-    if input_method=="📁 Upload Image":
-        input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
-    elif input_method=="📸 Use Camera":
+    if input_method == "📁 Upload Image":
+        input_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
+    elif input_method == "📸 Use Camera":
         input_file = st.camera_input("Capture an image")
-    
+
     if input_file:
         img = Image.open(input_file).convert("RGB")
         st.image(img, use_container_width=True)
-        img_array = np.array(img.resize((128,128)), dtype=np.float32)/255.0
+        img_array = np.array(img.resize((128, 128)), dtype=np.float32) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
         with st.spinner("Analyzing... 🔍"):
             try:
-                pred = model(tf.constant(img_array,dtype=tf.float32))
+                pred = model(tf.constant(img_array, dtype=tf.float32))
                 if isinstance(pred, dict) and "dense_1" in pred:
                     pred = pred["dense_1"].numpy()[0]
 
                 top3 = np.argsort(pred)[-3:][::-1]
 
                 cols = st.columns(3)
-                for col,i in zip(cols,top3):
+                for col, i in zip(cols, top3):
                     with col:
                         st.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
 
