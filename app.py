@@ -104,7 +104,7 @@ if not st.session_state.logged_in:
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
-        # Google login button
+        # Google login button - REPLACED WITH DIRECT HTML LINK
         auth_params = {
             "client_id": CLIENT_ID,
             "redirect_uri": REDIRECT_URI,
@@ -114,9 +114,16 @@ if not st.session_state.logged_in:
             "prompt": "consent"
         }
         auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
-        if st.button("Continue with Google", use_container_width=True):
-            st.session_state.auth_url = auth_url
-            st.markdown(f'<meta http-equiv="refresh" content="0; URL={auth_url}">', unsafe_allow_html=True)
+        st.markdown(
+            f'''
+            <a href="{auth_url}" target="_blank">
+                <button style="
+                    width:100%; padding:12px; font-weight:bold; border-radius:12px;
+                    background-color:#4285F4; color:white; border:none; cursor:pointer;
+                    ">Continue with Google 🚀</button>
+            </a>
+            ''', unsafe_allow_html=True
+        )
 
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
         # Demo login
