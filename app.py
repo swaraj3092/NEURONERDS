@@ -40,7 +40,7 @@ classes = load_classes()
 # ---------------------------- Google OAuth Config ----------------------------
 CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
 CLIENT_SECRET = "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"
-REDIRECT_URI = "https://neuronerds.streamlit.app"
+REDIRECT_URI = "https://neuronerds.streamlit.app"   # ✅ Updated without trailing slash
 
 SCOPES = "openid email profile"
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -53,10 +53,11 @@ if "logged_in" not in st.session_state:
 if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
 
-# ---------------------------- GOOGLE LOGIN HANDLER (Corrected) ----------------------------
-if "code" in st.query_params:
+# ---------------------------- GOOGLE LOGIN HANDLER ----------------------------
+code_list = st.experimental_get_query_params().get("code")
+if code_list:
+    code = code_list[0]
     try:
-        code = st.query_params["code"][0]
         data = {
             "code": code,
             "client_id": CLIENT_ID,
@@ -73,12 +74,35 @@ if "code" in st.query_params:
                 headers={"Authorization": f"Bearer {access_token}"}
             ).json()
             st.session_state.logged_in = True
-            st.session_state.user_name = user_info.get("name","User")
-            st.rerun()
+            st.session_state.user_name = user_info.get("name", "User")
+            st.experimental_rerun()
         else:
             st.error("Failed to login. Please try again.")
     except Exception as e:
         st.error(f"An error occurred during authentication: {e}")
+
+# ---------------------------- Google Login Button ----------------------------
+auth_params = {
+    "client_id": CLIENT_ID,
+    "redirect_uri": REDIRECT_URI,
+    "response_type": "code",
+    "scope": SCOPES,
+    "access_type": "offline",
+    "prompt": "consent"
+}
+auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
+
+st.markdown(
+    f'''
+    <a href="{auth_url}">
+        <button style="
+            width:100%; padding:12px; font-weight:bold; border-radius:12px;
+            background-color:#4285F4; color:white; border:none; cursor:pointer;
+            ">Continue with Google 🚀</button>
+    </a>
+    ''', unsafe_allow_html=True
+)
+
 
 # ---------------------------- CSS Styling ----------------------------
 st.markdown("""
