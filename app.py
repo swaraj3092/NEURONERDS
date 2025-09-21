@@ -82,27 +82,7 @@ if "code" in st.query_params:
         except Exception as e:
             st.error(f"An error occurred during authentication: {e}")
 
-# ---------------------------- Google Login Button ----------------------------
-auth_params = {
-    "client_id": CLIENT_ID,
-    "redirect_uri": REDIRECT_URI,
-    "response_type": "code",
-    "scope": SCOPES,
-    "access_type": "offline",
-    "prompt": "consent"
-}
-auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
 
-st.markdown(
-    f'''
-    <a href="{auth_url}">
-        <button style="
-            width:100%; padding:12px; font-weight:bold; border-radius:12px;
-            background-color:#4285F4; color:white; border:none; cursor:pointer;
-            ">Continue with Google 🚀</button>
-    </a>
-    ''', unsafe_allow_html=True
-)
 
 
 
