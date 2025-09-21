@@ -9,7 +9,8 @@ from io import BytesIO
 # ----------------------------
 # Page Config
 # ----------------------------
-st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="🐄")
+# The page_icon parameter now uses "cow.wbp"
+st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.wbp")
 
 # ----------------------------
 # Caching Functions
@@ -133,7 +134,6 @@ else:
 
     with tab1:
         # Input choice with icons
-        # Removed the "🖼️ Use Example Image" option
         input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
 
         input_file = None
