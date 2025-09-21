@@ -169,11 +169,9 @@ def show_login_page():
 
 
 # ---------------------------- RENDER PAGES ----------------------------
-if st.session_state.logged_in:
-    show_main_app()
-else:
-    # Handle Google OAuth login code
-    if "code" in st.query_params:
+def main():
+    # 1️⃣ Handle Google OAuth login code if present
+    if "code" in st.query_params and not st.session_state.logged_in:
         try:
             code = st.query_params["code"][0]
             data = {
@@ -198,6 +196,15 @@ else:
         except Exception as e:
             st.error(f"An error occurred during authentication: {e}")
 
-    # Show login page if still not logged in
+    # 2️⃣ Show login page if not logged in
     if not st.session_state.logged_in:
         show_login_page()
+        return  # <-- Important! Stops main app from running until logged in
+
+    # 3️⃣ Show main app only after login
+    show_main_app()
+
+
+# Run the app
+main()
+
