@@ -100,17 +100,7 @@ else:
                 st.error(f"Cannot handle prediction output of type {type(prediction_output)}")
                 prediction = None
 
-            if prediction is not None:
-                # Ensure classes length matches prediction length
-                classes = classes[:len(prediction)]
-                """
-                if len(classes) != len(prediction):
-                    st.warning(f"Warning: classes length ({len(classes)}) != prediction length ({len(prediction)}). Adjusting.")
-                    if len(classes) < len(prediction):
-                        classes = [f"class_{i}" for i in range(len(prediction))]
-                    else:
-                        classes = classes[:len(prediction)]
-                """
+            
 
                 # Top 3 predictions
                 top3_idx = prediction.argsort()[-3:][::-1]
