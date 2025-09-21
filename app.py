@@ -10,20 +10,14 @@ import json
 # ----------------------------
 model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
 
-# Load class names safely
+# ----------------------------
+# Load class names from JSON
+# ----------------------------
 with open("models/model.json", "r") as f:
-    classes_data = json.load(f)
+    classes_dict = json.load(f)
 
-# Convert to list safely
-if isinstance(classes_data, dict):
-    try:
-        classes = [classes_data[str(k)] for k in range(len(classes_data))]
-    except KeyError:
-        classes = list(classes_data.values())
-elif isinstance(classes_data, list):
-    classes = classes_data
-else:
-    raise ValueError("Unknown format for model.json")
+# Ensure classes are ordered by numeric keys
+classes = [classes_dict[str(k)] for k in range(len(classes_dict))]
 
 # ----------------------------
 # Streamlit page config
@@ -56,7 +50,7 @@ if not st.session_state.logged_in:
     login_btn = st.button("Login")
     
     if login_btn:
-        if username == "bpa" and password == "batch":  # simple authentication
+        if username == "bpa" and password == "batch":
             st.session_state.logged_in = True
             st.success("Login Successful! Redirecting...")
             st.experimental_rerun()
@@ -73,7 +67,7 @@ else:
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
     
     if uploaded_file:
-        # Display image
+        # Display uploaded image
         img = Image.open(uploaded_file).convert("RGB")
         st.image(img, caption="Uploaded Image", use_column_width=True)
 
@@ -86,7 +80,7 @@ else:
             # Call TFSMLayer
             prediction_output = model(tf.constant(img_array, dtype=tf.float32))
 
-            # Safely extract prediction
+            # Extract prediction safely
             if isinstance(prediction_output, tf.Tensor):
                 prediction = prediction_output.numpy()[0]
             elif isinstance(prediction_output, (list, tuple)) and isinstance(prediction_output[0], tf.Tensor):
@@ -99,11 +93,10 @@ else:
                 prediction = None
 
             if prediction is not None:
-                # Ensure classes length matches prediction length
+                # Ensure classes length matches prediction length silently
                 if len(classes) != len(prediction):
-                    st.warning(f"Warning: classes length ({len(classes)}) != prediction length ({len(prediction)}). Adjusting.")
                     if len(classes) < len(prediction):
-                        classes = [f"class_{i}" for i in range(len(prediction))]
+                        classes += [f"class_{i}" for i in range(len(prediction)-len(classes))]
                     else:
                         classes = classes[:len(prediction)]
 
@@ -115,9 +108,10 @@ else:
                     st.markdown(f"**{classes[i]}:** {prediction[i]*100:.2f}%")
                     st.progress(int(prediction[i]*100))
 
-                # Optional: Show full raw predictions
+                # Optional: show full predictions
                 show_all = st.checkbox("Show full class predictions")
                 if show_all:
                     st.markdown("<h2>All Class Predictions:</h2>", unsafe_allow_html=True)
-                    for i, prob in enumerate(prediction):
-                        st.markdown(f"**{classes[i]}:** {prob*100:.4f}%")
+                    sorted_idx = np.argsort(prediction)[::-1]
+                    for i in sorted_idx:
+                        st.markdown(f"**{classes[i]}:** {prediction[i]*100:.4f}%")
