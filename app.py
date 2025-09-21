@@ -49,7 +49,7 @@ if "logged_in" not in st.session_state:
 if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
 
-# GOOGLE LOGIN HANDLER (top of the script)
+# GOOGLE LOGIN HANDLER (top of script)
 if "code" in st.query_params and not st.session_state.logged_in:
     try:
         code = st.query_params["code"][0]
@@ -70,8 +70,10 @@ if "code" in st.query_params and not st.session_state.logged_in:
             ).json()
             st.session_state.logged_in = True
             st.session_state.user_name = user_info.get("name", "User")
-            # Clear query params instead of rerun
+
+            # Clear query params to prevent looping
             st.experimental_set_query_params()
+
         else:
             st.error("Failed login. Please try again.")
     except Exception as e:
