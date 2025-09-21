@@ -1,24 +1,32 @@
 import streamlit as st
-from tensorflow.keras.models import load_model
-import numpy as np
 from PIL import Image
+import numpy as np
+import tensorflow as tf
+from keras.layers import TFSMLayer
 import json
 
+# ----------------------------
+# Load TFSMLayer model
+# ----------------------------
+model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_default")
 
-import tensorflow as tf
-
-# Load the saved model
-model = tf.keras.models.load_model("models/animal_classifier.keras")
-
-# Verify model summary
-model.summary()
-
-
+# Load class names safely
 with open("models/model.json", "r") as f:
-    classes = json.load(f)
+    classes_data = json.load(f)
+
+# Convert to list safely
+if isinstance(classes_data, dict):
+    try:
+        classes = [classes_data[str(k)] for k in range(len(classes_data))]
+    except KeyError:
+        classes = list(classes_data.values())
+elif isinstance(classes_data, list):
+    classes = classes_data
+else:
+    raise ValueError("Unknown format for model.json")
 
 # ----------------------------
-# Page config
+# Streamlit page config
 # ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide")
 
@@ -55,29 +63,61 @@ if not st.session_state.logged_in:
         else:
             st.error("Invalid credentials. Try again.")
 
+# ----------------------------
+# Main App
+# ----------------------------
 else:
-    # ----------------------------
-    # Main App
-    # ----------------------------
     st.markdown("<h1 style='text-align:center;'>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center;'>Upload an image to see the AI prediction instantly!</p>", unsafe_allow_html=True)
     
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
     
     if uploaded_file:
+        # Display image
         img = Image.open(uploaded_file).convert("RGB")
         st.image(img, caption="Uploaded Image", use_column_width=True)
-        
-        img = img.resize((128,128))
-        img_array = image.img_to_array(img)
-        img_array = np.expand_dims(img_array, axis=0) / 255.0
 
-        
+        # Preprocess image
+        img = img.resize((128, 128))
+        img_array = np.array(img, dtype=np.float32) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)  # shape (1,128,128,3)
+
         with st.spinner("Analyzing... 🔍"):
-            prediction = model.predict(img_array)[0]
-            top3_idx = prediction.argsort()[-3:][::-1]
-            
-        st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
-        for i in top3_idx:
-            st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
-            st.progress(int(prediction[i]*100))
+            # Call TFSMLayer
+            prediction_output = model(tf.constant(img_array, dtype=tf.float32))
+
+            # Safely extract prediction
+            if isinstance(prediction_output, tf.Tensor):
+                prediction = prediction_output.numpy()[0]
+            elif isinstance(prediction_output, (list, tuple)) and isinstance(prediction_output[0], tf.Tensor):
+                prediction = prediction_output[0].numpy()[0]
+            elif isinstance(prediction_output, dict):
+                key = list(prediction_output.keys())[0]
+                prediction = prediction_output[key].numpy()[0]
+            else:
+                st.error(f"Cannot handle prediction output of type {type(prediction_output)}")
+                prediction = None
+
+            if prediction is not None:
+                # Ensure classes length matches prediction length
+                if len(classes) != len(prediction):
+                    st.warning(f"Warning: classes length ({len(classes)}) != prediction length ({len(prediction)}). Adjusting.")
+                    if len(classes) < len(prediction):
+                        classes = [f"class_{i}" for i in range(len(prediction))]
+                    else:
+                        classes = classes[:len(prediction)]
+
+                # Top 3 predictions
+                top3_idx = prediction.argsort()[-3:][::-1]
+
+                st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
+                for i in top3_idx:
+                    st.markdown(f"**{classes[i]}:** {prediction[i]*100:.2f}%")
+                    st.progress(int(prediction[i]*100))
+
+                # Optional: Show full raw predictions
+                show_all = st.checkbox("Show full class predictions")
+                if show_all:
+                    st.markdown("<h2>All Class Predictions:</h2>", unsafe_allow_html=True)
+                    for i, prob in enumerate(prediction):
+                        st.markdown(f"**{classes[i]}:** {prob*100:.4f}%")
