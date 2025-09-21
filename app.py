@@ -8,7 +8,7 @@ import json
 import tensorflow as tf
 
 # Load the saved model
-model = tf.keras.models.load_model("models/animal_classifier.keras")
+model = tf.keras.models.load_model("models/animal_classifier_savedmodel/saved_model.pb")
 
 # Verify model summary
 model.summary()
