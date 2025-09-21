@@ -6,6 +6,7 @@ from keras.layers import TFSMLayer
 import json
 import requests
 import urllib.parse
+import os
 
 # ---------------------------- Page Config ----------------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
@@ -28,12 +29,10 @@ def load_classes():
 model = load_model()
 classes = load_classes()
 
-# ----------------------------
-# Google OAuth Configuration
-# ----------------------------
-CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
-CLIENT_SECRET = "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"
-REDIRECT_URI = "https://neuronerds.streamlit.app/"
+# ---------------------------- Google OAuth Config ----------------------------
+client_id = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
+client_secret = "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"
+redirect_uri = "https://neuronerds.streamlit.app/"
 
 SCOPES = "openid email profile"
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -43,6 +42,8 @@ USER_INFO_URI = "https://www.googleapis.com/oauth2/v1/userinfo"
 # ---------------------------- Session State ----------------------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+if "user_name" not in st.session_state:
+    st.session_state.user_name = ""
 
 # ---------------------------- CSS Styling ----------------------------
 st.markdown("""
@@ -52,6 +53,9 @@ body { background-color: #1a1a2e; color: #f0f2f6; font-family: 'Arial', sans-ser
 h1, h2, h3 { color: #f0f2f6; text-align: center; }
 .stButton>button { background-color: #3b5998; color: white; font-weight: bold; border-radius: 12px; padding: 12px 28px; transition: all 0.3s ease; border: none; }
 .stButton>button:hover { background-color: #314a79; transform: scale(1.02); }
+.google-btn { width: 100%; display: flex; align-items: center; justify-content: center; padding: 10px; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; background-color: white; color: #1e1e2f; font-weight: bold; text-decoration: none; }
+.google-btn:hover { background-color: #f1f1f1; }
+.google-btn img { margin-right: 10px; }
 .login-container { background: #1a1a2e; border-radius: 20px; padding: 40px; margin: 50px auto; width: 400px; box-shadow: 0px 8px 20px rgba(0,0,0,0.3); text-align: center; color: #f0f2f6; }
 .or-separator { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #ccc; }
 .or-separator::before, .or-separator::after { content: ''; flex: 1; border-bottom: 1px solid #444; }
@@ -89,15 +93,10 @@ if not st.session_state.logged_in:
                 token_resp = requests.post(TOKEN_URI, data=data).json()
                 access_token = token_resp.get("access_token")
                 if access_token:
-                    user_info = requests.get(
-                        USER_INFO_URI,
-                        params={"alt":"json"},
-                        headers={"Authorization": f"Bearer {access_token}"}
-                    ).json()
+                    user_info = requests.get(USER_INFO_URI, params={"alt":"json"}, headers={"Authorization": f"Bearer {access_token}"}).json()
                     st.session_state.logged_in = True
                     st.session_state.user_name = user_info.get("name","User")
-                    
-                    # Remove 'code' from URL and rerun
+                    # Remove code from URL so main page loads
                     st.experimental_set_query_params()
                     st.rerun()
                 else:
@@ -105,7 +104,7 @@ if not st.session_state.logged_in:
             except Exception as e:
                 st.error(f"An error occurred during authentication: {e}")
 
-        # Google login button (opens in same tab)
+        # Google login button
         auth_params = {
             "client_id": client_id,
             "redirect_uri": redirect_uri,
@@ -115,20 +114,17 @@ if not st.session_state.logged_in:
             "prompt": "consent"
         }
         auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
-        st.markdown(
-            f'<a href="{auth_url}"><button class="google-btn">Continue with Google</button></a>',
-            unsafe_allow_html=True
-        )
+        if st.button("Continue with Google", use_container_width=True):
+            st.markdown(f'<meta http-equiv="refresh" content="0; URL={auth_url}">', unsafe_allow_html=True)
 
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
-
         # Demo login
         email = st.text_input("Email", placeholder="user@example.com")
         password = st.text_input("Password", type="password")
         if st.button("Login Demo"):
             if email=="user" and password=="demo123":
-                st.session_state.logged_in=True
-                st.session_state.user_name="Demo User"
+                st.session_state.logged_in = True
+                st.session_state.user_name = "Demo User"
                 st.rerun()
             else:
                 st.error("Invalid demo credentials.")
@@ -140,9 +136,8 @@ if not st.session_state.logged_in:
             st.markdown("<p style='text-align:right;'>Need an account? <a href='#'>Sign up</a></p>", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-
 # ---------------------------- MAIN APP ----------------------------
-if st.session_state.get("logged_in"):
+if st.session_state.logged_in:
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
     if st.button("Logout"):
         st.session_state.logged_in = False
@@ -168,7 +163,7 @@ if st.session_state.get("logged_in"):
             try:
                 pred = model(tf.constant(img_array, dtype=tf.float32))
 
-                # Handle dict output
+                # Handle dict output (SavedModel usually returns a dict)
                 if isinstance(pred, dict):
                     pred = list(pred.values())[0].numpy()[0]
                 else:
@@ -176,9 +171,10 @@ if st.session_state.get("logged_in"):
 
                 # Top 3 predictions
                 top3 = np.argsort(pred)[-3:][::-1]
+
                 cols = st.columns(3)
                 for col, i in zip(cols, top3):
-                    i = int(i)
+                    i = int(i)  # cast to Python int
                     with col:
                         st.metric(label=classes[i], value=f"{pred[i]*100:.2f}%")
 
