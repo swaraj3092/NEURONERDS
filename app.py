@@ -77,8 +77,6 @@ if "code" in st.query_params:
                 st.session_state.logged_in = True
                 st.session_state.user_name = user_info.get("name", "User")
                 st.rerun()
-            else:
-                st.error("Failed to login. Please try again.")
         except Exception as e:
             st.error(f"An error occurred during authentication: {e}")
 
