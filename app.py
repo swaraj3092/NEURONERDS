@@ -1,9 +1,4 @@
-import os
-import warnings
 
-# ------------------ SUPPRESS WARNINGS ------------------
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=all, 1=INFO, 2=WARNING, 3=ERROR
-warnings.filterwarnings("ignore")  # Ignore Python warnings
 
 # Then import other libraries
 import streamlit as st
