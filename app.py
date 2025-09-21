@@ -72,9 +72,10 @@ else:
         img = Image.open(uploaded_file).convert("RGB")
         st.image(img, caption="Uploaded Image", use_column_width=True)
         
-        img = img.resize((128,128))
+        img = image.load_img(uploaded_file, target_size=(224, 224))  # adjust size
         img_array = image.img_to_array(img)
-        img_array = np.expand_dims(img_array, axis=0) / 255.0
+        img_array = tf.expand_dims(img_array, axis=0)  # add batch dimension
+
 
         
         with st.spinner("Analyzing... 🔍"):
