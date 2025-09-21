@@ -108,13 +108,7 @@ def handle_google_login():
 # Call login handler at top
 handle_google_login()
 
-# ---------------------------- LOGOUT BUTTON ----------------------------
-if st.session_state.logged_in:
-    st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
-    if st.button("Logout"):
-        st.session_state.logged_in = False
-        st.session_state.user_name = "User"
-        # No need for st.experimental_rerun(); updating session_state auto-refreshes the page
+
 
 
 # ---------------------------- LOGIN PAGE ----------------------------
