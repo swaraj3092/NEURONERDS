@@ -136,54 +136,56 @@ if not st.session_state.logged_in:
 if st.session_state.get("logged_in"):
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name', 'User')}!</h2>", unsafe_allow_html=True)
     if st.button("Logout"):
-        st.session_state.logged_in=False
+        st.session_state.logged_in = False
         st.rerun()
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
 
     input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
     input_file = None
-    if input_method=="📁 Upload Image":
-        input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
-    elif input_method=="📸 Use Camera":
+    if input_method == "📁 Upload Image":
+        input_file = st.file_uploader("Choose an image...", type=["jpg", "png", "jpeg"])
+    elif input_method == "📸 Use Camera":
         input_file = st.camera_input("Capture an image")
-    
+
     if input_file:
         img = Image.open(input_file).convert("RGB")
         st.image(img, use_container_width=True)
-        img_array = np.array(img.resize((128,128)),dtype=np.float32)/255.0
+
+        img_array = np.array(img.resize((128, 128)), dtype=np.float32) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
+
         with st.spinner("Analyzing... 🔍"):
-    try:
-        pred = model(tf.constant(img_array, dtype=tf.float32))
+            try:
+                pred = model(tf.constant(img_array, dtype=tf.float32))
 
-        # Handle dict output (SavedModel usually returns a dict)
-        if isinstance(pred, dict):
-            pred = list(pred.values())[0].numpy()[0]
-        else:
-            pred = pred.numpy()[0]
+                # Handle dict output (SavedModel usually returns a dict)
+                if isinstance(pred, dict):
+                    pred = list(pred.values())[0].numpy()[0]
+                else:
+                    pred = pred.numpy()[0]
 
-        # Top 3 predictions
-        top3 = np.argsort(pred)[-3:][::-1]
+                # Top 3 predictions
+                top3 = np.argsort(pred)[-3:][::-1]
 
-        cols = st.columns(3)
-        for col, i in zip(cols, top3):
-            i = int(i)  # ✅ cast to Python int
-            with col:
-                st.metric(label=classes[i], value=f"{pred[i]*100:.2f}%")
+                cols = st.columns(3)
+                for col, i in zip(cols, top3):
+                    i = int(i)  # ✅ cast to Python int
+                    with col:
+                        st.metric(label=classes[i], value=f"{pred[i]*100:.2f}%")
 
-        # Show all predictions if user checks
-        if st.checkbox("Show all predictions"):
-            st.markdown("---")
-            left_col, right_col = st.columns(2)
-            sorted_idx = np.argsort(pred)[::-1]
-            half = len(sorted_idx) // 2
-            for i in sorted_idx[:half]:
-                i = int(i)  # ✅ cast
-                left_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
-            for i in sorted_idx[half:]:
-                i = int(i)  # ✅ cast
-                right_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
+                # Show all predictions if user checks
+                if st.checkbox("Show all predictions"):
+                    st.markdown("---")
+                    left_col, right_col = st.columns(2)
+                    sorted_idx = np.argsort(pred)[::-1]
+                    half = len(sorted_idx) // 2
+                    for i in sorted_idx[:half]:
+                        i = int(i)
+                        left_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
+                    for i in sorted_idx[half:]:
+                        i = int(i)
+                        right_col.markdown(f"**{classes[i]}:** {pred[i]*100:.4f}%")
 
-    except Exception as e:
-        st.error(f"Error: {e}")
+            except Exception as e:
+                st.error(f"Error: {e}")
