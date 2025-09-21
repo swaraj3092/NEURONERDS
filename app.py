@@ -52,9 +52,6 @@ body { background-color: #1a1a2e; color: #f0f2f6; font-family: 'Arial', sans-ser
 h1, h2, h3 { color: #f0f2f6; text-align: center; }
 .stButton>button { background-color: #3b5998; color: white; font-weight: bold; border-radius: 12px; padding: 12px 28px; transition: all 0.3s ease; border: none; }
 .stButton>button:hover { background-color: #314a79; transform: scale(1.02); }
-.google-btn { width: 100%; display: flex; align-items: center; justify-content: center; padding: 10px; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; background-color: white; color: #1e1e2f; font-weight: bold; text-decoration: none; }
-.google-btn:hover { background-color: #f1f1f1; }
-.google-btn img { margin-right: 10px; }
 .login-container { background: #1a1a2e; border-radius: 20px; padding: 40px; margin: 50px auto; width: 400px; box-shadow: 0px 8px 20px rgba(0,0,0,0.3); text-align: center; color: #f0f2f6; }
 .or-separator { display: flex; align-items: center; text-align: center; margin: 20px 0; color: #ccc; }
 .or-separator::before, .or-separator::after { content: ''; flex: 1; border-bottom: 1px solid #444; }
@@ -79,10 +76,9 @@ if not st.session_state.logged_in:
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
         # Handle OAuth redirect
-        query_params = st.query_params
-        if "code" in query_params:
+        if "code" in st.query_params:
             try:
-                code = query_params.get("code")
+                code = st.query_params["code"][0]
                 data = {
                     "code": code,
                     "client_id": CLIENT_ID,
@@ -102,7 +98,7 @@ if not st.session_state.logged_in:
             except Exception as e:
                 st.error(f"An error occurred during authentication: {e}")
 
-        # Google login button
+        # Google login button (opens in a new tab)
         auth_params = {
             "client_id": CLIENT_ID,
             "redirect_uri": REDIRECT_URI,
@@ -112,26 +108,24 @@ if not st.session_state.logged_in:
             "prompt": "consent"
         }
         auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
-        if st.button("Continue with Google", use_container_width=True):
-            auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
-            st.markdown(f'''
-            <a href="{auth_url}" target="_blank">
+        st.markdown(f'''
+        <a href="{auth_url}" target="_blank">
             <button style="
-            width:100%; padding:12px; font-weight:bold; border-radius:12px;
-            background-color:#3b5998; color:white; border:none; cursor:pointer;
+                width:100%; padding:12px; font-weight:bold; border-radius:12px;
+                background-color:#3b5998; color:white; border:none; cursor:pointer;
             ">Continue with Google</button>
-            </a>
-            ''', unsafe_allow_html=True)
-
+        </a>
+        ''', unsafe_allow_html=True)
 
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
+
         # Demo login
         email = st.text_input("Email", placeholder="user@example.com")
         password = st.text_input("Password", type="password")
         if st.button("Login Demo"):
             if email=="user" and password=="demo123":
-                st.session_state.logged_in=True
-                st.session_state.user_name="Demo User"
+                st.session_state.logged_in = True
+                st.session_state.user_name = "Demo User"
                 st.rerun()
             else:
                 st.error("Invalid demo credentials.")
@@ -170,7 +164,7 @@ if st.session_state.get("logged_in"):
             try:
                 pred = model(tf.constant(img_array, dtype=tf.float32))
 
-                # Handle dict output (SavedModel usually returns a dict)
+                # Handle dict output
                 if isinstance(pred, dict):
                     pred = list(pred.values())[0].numpy()[0]
                 else:
@@ -178,14 +172,13 @@ if st.session_state.get("logged_in"):
 
                 # Top 3 predictions
                 top3 = np.argsort(pred)[-3:][::-1]
-
                 cols = st.columns(3)
                 for col, i in zip(cols, top3):
-                    i = int(i)  # ✅ cast to Python int
+                    i = int(i)
                     with col:
                         st.metric(label=classes[i], value=f"{pred[i]*100:.2f}%")
 
-                # Show all predictions if user checks
+                # Show all predictions
                 if st.checkbox("Show all predictions"):
                     st.markdown("---")
                     left_col, right_col = st.columns(2)
