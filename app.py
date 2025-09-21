@@ -9,8 +9,8 @@ import time
 # ----------------------------
 # Load model & classes
 # ----------------------------
-model = load_model("animal_classifier.h5")
-with open("model.json", "r") as f:
+model = load_model("models/animal_classifier.h5")
+with open("models/model.json", "r") as f:
     classes = json.load(f)
 
 # ----------------------------
