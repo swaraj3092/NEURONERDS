@@ -113,8 +113,12 @@ if not st.session_state.logged_in:
             "prompt": "consent"
         }
         auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
-        if st.button("Continue with Google", use_container_width=True):
-            st.markdown(f'<meta http-equiv="refresh" content="0; URL={auth_url}">', unsafe_allow_html=True)
+       st.markdown(
+    f'<a class="google-btn" href="{auth_url}" target="_self">'
+    f'<img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" width="20"/> Continue with Google</a>',
+    unsafe_allow_html=True
+)
+
 
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
         # Demo login
