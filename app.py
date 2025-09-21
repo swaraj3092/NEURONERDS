@@ -3,17 +3,6 @@ from PIL import Image
 import numpy as np
 import tensorflow as tf
 import json
-from google_auth_oauthlib.flow import Flow
-from google.oauth2 import id_token
-import google.auth.transport.requests
-import requests
-
-# ----------------------------
-# OAuth Config (from secrets)
-# ----------------------------
-CLIENT_ID = st.secrets.google_oauth.client_id
-CLIENT_SECRET = st.secrets.google_oauth.client_secret
-REDIRECT_URI = st.secrets.google_oauth.redirect_uri
 
 # ----------------------------
 # Model Load
@@ -26,7 +15,7 @@ model = tf.keras.models.load_model("models/animal_classifier.keras")
 st.set_page_config(page_title="NeuroNerds Animal Classifier", page_icon="🐾", layout="centered")
 
 # ----------------------------
-# Google Login UI
+# Login Page (unchanged)
 # ----------------------------
 if "user" not in st.session_state:
     st.title("🔐 Welcome to NeuroNerds")
@@ -35,22 +24,7 @@ if "user" not in st.session_state:
         <div style="text-align:center;">
             <h3 style="color:#4CAF50;">Login to Continue</h3>
             <p>Please sign in with your Google account to use the animal classifier.</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    google_login_url = (
-        f"https://accounts.google.com/o/oauth2/v2/auth?"
-        f"client_id={CLIENT_ID}&response_type=code"
-        f"&scope=openid%20email%20profile"
-        f"&redirect_uri={REDIRECT_URI}"
-    )
-
-    st.markdown(
-        f"""
-        <div style="text-align:center;">
-            <a href="{google_login_url}" target="_self">
+            <a href="#" target="_self">
                 <button style="
                     background-color:#4285F4;
                     color:white;
