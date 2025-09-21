@@ -15,29 +15,29 @@ model = TFSMLayer("models/animal_classifier_savedmodel", call_endpoint="serving_
 # ----------------------------
 with open("models/model.json", "r") as f:
     classes_dict = json.load(f)
-
 classes = [classes_dict[str(k)] for k in range(len(classes_dict))]
 
 # ----------------------------
 # Streamlit page config
 # ----------------------------
-st.set_page_config(page_title="🐾 Animal Classifier", layout="wide")
+st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="🐄")
 
 # ----------------------------
-# Modern CSS Styling
+# Modern Dark CSS Styling
 # ----------------------------
 st.markdown("""
 <style>
-/* Background Gradient */
 body {
-    background: linear-gradient(120deg, #f6d365, #fda085);
+    background-color: #1e1e2f;
+    color: #f5f5f5;
     font-family: 'Arial', sans-serif;
 }
 
 /* Headers */
-h1, h2, h3 {
-    color: #2c3e50;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+h1,h2,h3 { 
+    color: #ffffff;
+    text-align: center;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
 }
 
 /* Buttons */
@@ -56,21 +56,16 @@ h1, h2, h3 {
 
 /* Prediction Cards */
 .pred-card {
-    background: rgba(255,255,255,0.9);
+    background: #2e2e3f;
     border-radius: 15px;
     padding: 20px;
     margin: 10px;
-    box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+    box-shadow: 0px 8px 16px rgba(0,0,0,0.5);
     text-align: center;
     transition: transform 0.3s ease;
 }
 .pred-card:hover {
     transform: translateY(-5px);
-}
-
-/* Camera Input Styling */
-.css-1r6slb0 input {
-    border-radius: 12px;
 }
 
 /* Progress bars */
@@ -79,6 +74,16 @@ h1, h2, h3 {
     height:18px; 
     border-radius:10px;
     transition: width 1s ease-in-out;
+}
+
+/* File uploader & camera icon tweaks */
+.css-1r6slb0 input {
+    border-radius: 12px;
+}
+
+/* Center text for radio buttons */
+.css-1w4c4ca {
+    justify-content: center;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -90,7 +95,7 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    st.markdown("<h1 style='text-align:center;'>🔒 BPA Login</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>🔒 BPA Login</h1>", unsafe_allow_html=True)
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     login_btn = st.button("Login")
@@ -106,16 +111,17 @@ if not st.session_state.logged_in:
 # Main App
 # ----------------------------
 if st.session_state.logged_in:
-    st.markdown("<h1 style='text-align:center;'>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center;'>Choose an input method to see AI prediction instantly!</p>", unsafe_allow_html=True)
+    st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
+    st.markdown("<p>Choose an input method to see AI prediction instantly!</p>", unsafe_allow_html=True)
 
-    # Input choice
-    input_method = st.radio("Select input method:", ["Upload Image", "Use Camera"])
+    # Input choice with icons
+    input_method = st.radio("Select input method:", 
+                            ["📁 Upload Image", "📸 Use Camera"])
 
     uploaded_file = None
     camera_file = None
 
-    if input_method == "Upload Image":
+    if input_method == "📁 Upload Image":
         uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
     else:
         camera_file = st.camera_input("Capture an image using your camera")
@@ -123,7 +129,7 @@ if st.session_state.logged_in:
     input_file = uploaded_file if uploaded_file else camera_file
 
     if input_file:
-        # Display image
+        # Display image only once
         img = Image.open(input_file).convert("RGB")
         st.image(img, caption="Input Image", use_column_width=True)
 
@@ -147,12 +153,8 @@ if st.session_state.logged_in:
                 prediction = None
 
             if prediction is not None:
-                # Top 3 predictions
+                # Top 3 predictions in columns
                 top3_idx = prediction.argsort()[-3:][::-1]
-
-                st.markdown("<h2 style='text-align:center;'>Top Predictions:</h2>", unsafe_allow_html=True)
-
-                # Display in columns with animated cards
                 cols = st.columns(3)
                 for col, i in zip(cols, top3_idx):
                     with col:
@@ -164,7 +166,7 @@ if st.session_state.logged_in:
                         </div>
                         """, unsafe_allow_html=True)
 
-                # Optional: show full predictions
+                # Show all predictions
                 show_all = st.checkbox("Show all class predictions")
                 if show_all:
                     st.markdown("<h2>All Class Predictions:</h2>", unsafe_allow_html=True)
