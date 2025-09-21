@@ -4,10 +4,10 @@ import numpy as np
 from PIL import Image
 import json
 
-# ----------------------------
-# Load model & classes
-# ----------------------------
-model = load_model("models/animal_classifier_savedmodel")  # SavedModel format
+
+# Load SavedModel folder
+model = load_model("models/animal_classifier_savedmodel", compile=False)
+
 with open("models/model.json", "r") as f:
     classes = json.load(f)
 
