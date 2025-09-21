@@ -9,7 +9,7 @@ from io import BytesIO
 # ----------------------------
 # Page Config
 # ----------------------------
-# The favicon remains cow.png as per previous instructions
+# The page_icon is now "cow.png"
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
 
 # ----------------------------
@@ -144,27 +144,27 @@ if not st.session_state.logged_in:
     # Login UI
     with st.container():
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
-
-        # Logo: now references cow.png
-        st.image("assets/cow.png", use_column_width=False, output_format="PNG")
-
+        
+        # Logo: now references cow.png directly
+        st.image("cow.png", use_column_width=False, output_format="PNG")
+        
         # Welcome Text
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: #555;'>Sign in to continue</p>", unsafe_allow_html=True)
 
         # Google Button (Styling)
         st.markdown('<div class="google-btn"> <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_Google_g_darkmode_2020.svg" width="20"> Continue with Google</div>', unsafe_allow_html=True)
-
+        
         # OR Separator
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
-
+        
         # Login Form Fields
         email = st.text_input("Email", placeholder="you@example.com")
         password = st.text_input("Password", type="password")
-
+        
         # Login Button
         login_btn = st.button("Sign in", use_container_width=True)
-
+        
         # Links
         col1, col2 = st.columns(2)
         with col1:
@@ -180,9 +180,9 @@ if not st.session_state.logged_in:
                 st.rerun()
             else:
                 st.error("Invalid credentials. Try again.")
-
+        
         st.markdown('</div>', unsafe_allow_html=True)
-
+    
 else:
 # ----------------------------
 # Main App (Hidden until logged in)
@@ -236,11 +236,11 @@ else:
                 if show_all:
                     st.markdown("---")
                     st.markdown("<h2>All Predictions:</h2>", unsafe_allow_html=True)
-
+                    
                     # Create two columns for a more compact display
                     left_col, right_col = st.columns(2)
                     sorted_idx = np.argsort(prediction)[::-1]
-
+                    
                     # Distribute predictions evenly
                     half = len(sorted_idx) // 2
                     for i in sorted_idx[:half]:
@@ -271,6 +271,6 @@ else:
         st.info("""
             This web application is a **simple demonstration** of an animal image classifier built with **Streamlit** and **TensorFlow/Keras**.
             It allows you to upload an image or use your camera to get a real-time prediction of the animal type.
-
+            
             **Developers:** BPA Batch 2024
         """)
