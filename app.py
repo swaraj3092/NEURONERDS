@@ -111,24 +111,26 @@ if not st.session_state.logged_in:
         st.markdown("<h2>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: #ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
-        # Google login button
-        auth_params = {
-            "client_id": CLIENT_ID,
-            "redirect_uri": REDIRECT_URI,
-            "response_type": "code",
-            "scope": SCOPES,
-            "access_type": "offline",
-            "prompt": "consent"
-        }
-        auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
-        st.markdown(f'''
-            <a href="{auth_url}" target="_blank">
-                <button style="
-                    width:100%; padding:12px; font-weight:bold; border-radius:12px;
-                    background-color:#4285F4; color:white; border:none; cursor:pointer;
-                    ">Continue with Google 🚀</button>
-            </a>
-        ''', unsafe_allow_html=True)
+        # ---------------------------- GOOGLE LOGIN BUTTON (same tab) ----------------------------
+auth_params = {
+    "client_id": CLIENT_ID,
+    "redirect_uri": REDIRECT_URI,
+    "response_type": "code",
+    "scope": SCOPES,
+    "access_type": "offline",
+    "prompt": "consent"
+}
+auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
+
+st.markdown(f"""
+<form action="{auth_url}" method="get">
+    <button type="submit" style="
+        width:100%; padding:12px; font-weight:bold; border-radius:12px;
+        background-color:#4285F4; color:white; border:none; cursor:pointer;
+        ">Continue with Google 🚀</button>
+</form>
+""", unsafe_allow_html=True)
+
 
         st.markdown('<div class="or-separator">OR</div>', unsafe_allow_html=True)
 
