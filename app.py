@@ -4,6 +4,7 @@ from tensorflow.keras.preprocessing import image
 import numpy as np
 from PIL import Image
 import json
+import time
 
 # ----------------------------
 # Load model & classes
@@ -31,55 +32,50 @@ h1,h2,h3 { color: #2c3e50; }
 """, unsafe_allow_html=True)
 
 # ----------------------------
-# Initialize session_state
+# Login Page
 # ----------------------------
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
-if 'login_attempted' not in st.session_state:
-    st.session_state.login_attempted = False
-
-# ----------------------------
-# Login Page
-# ----------------------------
 if not st.session_state.logged_in:
-    st.markdown("<h1 style='text-align:center;'>🔒 BPA Login</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; animation: fadeIn 2s;'>🔒 BPA Login</h1>", unsafe_allow_html=True)
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     login_btn = st.button("Login")
-
+    
     if login_btn:
-        st.session_state.login_attempted = True
-        if username == "bpa" and password == "batch":
+        if username == "bpa" and password == "batch":  # simple authentication
             st.session_state.logged_in = True
+            st.success("Login Successful! Redirecting...")
+            st.experimental_rerun()
         else:
             st.error("Invalid credentials. Try again.")
 
-# ----------------------------
-# Main App
-# ----------------------------
-if st.session_state.logged_in:
+else:
+    # ----------------------------
+    # Main App
+    # ----------------------------
     st.markdown("<h1 style='text-align:center;'>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center;'>Upload an image to see the AI prediction instantly!</p>", unsafe_allow_html=True)
     
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
     
     if uploaded_file:
-        img = Image.open(uploaded_file).convert("RGB")
+        img = Image.open(uploaded_file)
         st.image(img, caption="Uploaded Image", use_column_width=True)
         
-        img = img.resize((224, 224))
-        img_array = np.array(img, dtype=np.float32) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
+        # ----------------------------
+        # Resize to model input size
+        # ----------------------------
+        img = img.resize((128, 128))  # ✅ Changed from 224x224 to 128x128
+        img_array = image.img_to_array(img)
+        img_array = np.expand_dims(img_array, axis=0)/255.0
         
         with st.spinner("Analyzing... 🔍"):
-            try:
-                prediction = model.predict(img_array)[0]
-                top3_idx = prediction.argsort()[-3:][::-1]
-                
-                st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
-                for i in top3_idx:
-                    st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
-                    st.progress(int(prediction[i]*100))
-            except ValueError as e:
-                st.error(f"Prediction failed: {e}")
+            prediction = model.predict(img_array)[0]
+            top3_idx = prediction.argsort()[-3:][::-1]
+            
+        st.markdown("<h2>Top Predictions:</h2>", unsafe_allow_html=True)
+        for i in top3_idx:
+            st.markdown(f"{classes[i]}: {prediction[i]*100:.2f}%")
+            st.progress(int(prediction[i]*100))
