@@ -187,7 +187,7 @@ if st.session_state.logged_in:
         input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"]) if input_method=="📁 Upload Image" else st.camera_input("Capture an image")
         if input_file:
             img = Image.open(input_file).convert("RGB")
-            st.image(img, use_column_width=True)
+            st.image(img, use_container_width=True)
             img_array = np.array(img.resize((128,128)), dtype=np.float32)/255.0
             img_array = np.expand_dims(img_array, axis=0)
             with st.spinner("Analyzing... 🔍"):
