@@ -1,5 +1,6 @@
 import os
 import warnings
+import sqlite3
 import streamlit as st
 from PIL import Image
 import numpy as np
@@ -9,51 +10,68 @@ import json
 import requests
 import urllib.parse
 import base64
-from datetime import datetime
-import io
-
-# ------------------ FIREBASE IMPORTS ------------------
-import firebase_admin
-from firebase_admin import credentials, firestore, auth, exceptions
 
 # ------------------ SUPPRESS WARNINGS ------------------
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.filterwarnings("ignore")
 
-# ------------------ FIREBASE SETUP ------------------
-if "firebase" in st.secrets:
-    firebase_config = st.secrets.firebase.firebase_config
-    if not firebase_admin._apps:
-        try:
-            cred = credentials.Certificate(firebase_config)
-            firebase_admin.initialize_app(cred, name="animal-classifier-app")
-            db = firestore.client(app=firebase_admin.get_app(name="animal-classifier-app"))
-            firebase_auth = auth
-        except ValueError as e:
-            st.error(f"Error initializing Firebase: {e}. Please check your service account credentials.")
-            st.stop()
-else:
-    st.error("Firebase credentials not found. Please ensure a '.streamlit/secrets.toml' file exists with the firebase_config.")
-    st.stop()
+# ------------------ DATABASE INIT ------------------
+DB_PATH = "new/users.db"  # Your db inside 'new' folder
 
-# ------------------ STYLING ------------------
+def init_db():
+    os.makedirs("new", exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            email TEXT PRIMARY KEY,
+            password TEXT NOT NULL
+        )
+    ''')
+    # Insert default user if not exists
+    try:
+        c.execute("INSERT INTO users (email, password) VALUES (?, ?)", ("bpa", "batch123"))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        pass
+    conn.close()
+
+init_db()
+
+# ------------------ PAGE STYLING ------------------
 st.markdown("""
 <style>
-body { background: linear-gradient(135deg, #1e3c72, #2a5298); font-family: 'Segoe UI', sans-serif; color: #f0f2f6;}
-.main .block-container { background-color: rgba(255,255,255,0.05); padding: 2rem; border-radius: 15px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.5);}
-h1,h2,h3 { color: #ffffff; text-align:center; animation: fadeInDown 1s ease-out;}
-.stButton>button { background: linear-gradient(90deg,#ff758c,#ff7eb3); color:white; font-weight:bold; border-radius:12px; padding:12px 28px; border:none; cursor:pointer; transition: all 0.3s ease;}
-.stButton>button:hover { transform: scale(1.05); box-shadow:0 8px 20px rgba(255,255,255,0.4);}
-div[role="tablist"] button { background: linear-gradient(90deg,#00c6ff,#0072ff); color:white; font-weight:bold; border-radius:10px; margin:0 5px; transition: all 0.3s ease;}
-div[role="tablist"] button:focus { outline:none;}
-div[role="tablist"] button:hover { transform: scale(1.05);}
-.stImage img { border-radius:12px; border:3px solid #00c6ff; transition: transform 0.3s ease;}
-.stImage img:hover { transform: scale(1.05);}
+body {
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    font-family: 'Segoe UI', sans-serif;
+    color: #f0f2f6;
+}
+.main .block-container {
+    background-color: rgba(255,255,255,0.05);
+    padding: 2rem;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+h1,h2,h3 { color:#fff; text-align:center; animation: fadeInDown 1s ease-out; }
+.stButton>button {
+    background: linear-gradient(90deg,#ff758c,#ff7eb3);
+    color:white;font-weight:bold;border-radius:12px;padding:12px 28px;border:none;
+    cursor:pointer;transition: all 0.3s ease;
+}
+.stButton>button:hover { transform:scale(1.05); box-shadow:0 8px 20px rgba(255,255,255,0.4); }
+div[role="tablist"] button {
+    background: linear-gradient(90deg,#00c6ff,#0072ff);
+    color:white;font-weight:bold;border-radius:10px;margin:0 5px;transition: all 0.3s ease;
+}
+div[role="tablist"] button:focus { outline:none; }
+div[role="tablist"] button:hover { transform: scale(1.05); }
+.stImage img { border-radius:12px;border:3px solid #00c6ff;transition:transform 0.3s ease;}
+.stImage img:hover { transform: scale(1.05); }
 @keyframes fadeInDown { from {opacity:0; transform:translateY(-20px);} to {opacity:1; transform:translateY(0);} }
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------ PAGE CONFIG ------------------
 st.set_page_config(page_title="🐾 Animal Classifier", layout="wide", page_icon="cow.png")
 
 # ------------------ LOAD MODEL & CLASSES ------------------
@@ -68,181 +86,142 @@ def load_classes():
             classes_dict = json.load(f)
         return [classes_dict[str(k)] for k in range(len(classes_dict))]
     except FileNotFoundError:
-        st.error("Class names file not found. Please ensure 'models/model.json' exists.")
+        st.error("Class names file not found.")
         return []
 
 model = load_model()
 classes = load_classes()
 
-# ------------------ GOOGLE OAUTH CONFIG ------------------
-CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
-CLIENT_SECRET = "GOCSPX-oJkYZxFa-4s4t8VHrBIhAgsi"
-REDIRECT_URI = "https://neuronerds.streamlit.app/"
-SCOPES = "openid email profile"
-AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
-TOKEN_URI = "https://oauth2.googleapis.com/token"
-USER_INFO_URI = "https://www.googleapis.com/oauth2/v1/userinfo"
-
 # ------------------ SESSION STATE ------------------
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "user_name" not in st.session_state:
-    st.session_state.user_name = "User"
-if "history" not in st.session_state:
-    st.session_state.history = []
-if "user_uid" not in st.session_state:
-    st.session_state.user_uid = None
+if "logged_in" not in st.session_state: st.session_state.logged_in = False
+if "user_name" not in st.session_state: st.session_state.user_name = "User"
+if "history" not in st.session_state: st.session_state.history = []
 
-# ------------------ GOOGLE LOGIN HANDLER ------------------
-if "code" in st.query_params:
-    code_list = st.query_params["code"]
-    if code_list:
-        code = code_list[0]
-        try:
-            data = {
-                "code": code,
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
-                "redirect_uri": REDIRECT_URI,
-                "grant_type": "authorization_code"
-            }
-            token_resp = requests.post(TOKEN_URI, data=data).json()
-            access_token = token_resp.get("access_token")
-            if access_token:
-                user_info = requests.get(
-                    USER_INFO_URI,
-                    params={"alt": "json"},
-                    headers={"Authorization": f"Bearer {access_token}"}
-                ).json()
-                st.session_state.logged_in = True
-                st.session_state.user_name = user_info.get("name", "User")
-                st.session_state.user_uid = user_info.get("email")  # 🔑 use email as UID
-                st.experimental_set_query_params()
-                st.rerun()
-        except Exception as e:
-            st.error(f"An error occurred during authentication: {e}")
+# ------------------ HELPER DB FUNCTIONS ------------------
+def verify_user(email, password):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE email=? AND password=?", (email, password))
+    user = c.fetchone()
+    conn.close()
+    return user is not None
 
-# ------------------ LOGIN PAGE ------------------
-if not st.session_state.logged_in:
+def register_user(email, password):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute("INSERT INTO users (email, password) VALUES (?,?)", (email,password))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.IntegrityError:
+        conn.close()
+        return False
+
+def reset_password(email, new_password):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE email=?", (email,))
+    if c.fetchone():
+        c.execute("UPDATE users SET password=? WHERE email=?", (new_password,email))
+        conn.commit()
+        conn.close()
+        return True
+    conn.close()
+    return False
+
+# ------------------ LOGIN / REGISTER UI ------------------
+tab_login, tab_register, tab_forgot = st.tabs(["Login","Register","Forgot Password"])
+
+with tab_login:
     st.image("cow.png", width=120)
-    st.markdown("<h2 style='text-align:center; color:#f0f2f6;'>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; color:#ccc;'>Sign in with Google to continue</p>", unsafe_allow_html=True)
+    email = st.text_input("Email", placeholder="user@example.com")
+    password = st.text_input("Password", type="password")
+    if st.button("Login"):
+        if verify_user(email,password):
+            st.session_state.logged_in = True
+            st.session_state.user_name = email
+            st.success(f"Logged in as {email}")
+        else:
+            st.error("Invalid credentials.")
 
-    auth_params = {
-        "client_id": CLIENT_ID,
-        "redirect_uri": REDIRECT_URI,
-        "response_type": "code",
-        "scope": SCOPES,
-        "access_type": "offline",
-        "prompt": "consent"
-    }
-    auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
-    st.markdown(f'<div style="display:flex; justify-content:center; margin:20px 0;"><a href="{auth_url}"><button style="width:250px;padding:12px;font-weight:bold;border-radius:12px;background-color:#4285F4;color:white;border:none;cursor:pointer;">Continue with Google 🚀</button></a></div>', unsafe_allow_html=True)
+with tab_register:
+    st.image("cow.png", width=120)
+    reg_email = st.text_input("Gmail (must end with @gmail.com)", placeholder="user@gmail.com")
+    reg_pass = st.text_input("Password", type="password")
+    if st.button("Register"):
+        if not reg_email.endswith("@gmail.com"):
+            st.error("Email must be a Gmail address ending with @gmail.com")
+        elif register_user(reg_email, reg_pass):
+            st.success("Registration successful! You can now login.")
+        else:
+            st.error("Email already exists.")
+
+with tab_forgot:
+    st.image("cow.png", width=120)
+    f_email = st.text_input("Registered Email", placeholder="user@gmail.com")
+    new_pass = st.text_input("New Password", type="password")
+    if st.button("Reset Password"):
+        if reset_password(f_email,new_pass):
+            st.success("Password updated successfully!")
+        else:
+            st.error("Email not found.")
 
 # ------------------ MAIN APP ------------------
 if st.session_state.logged_in:
-    st.markdown(f"<h2>Welcome, {st.session_state.get('user_name','User')}!</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2>Welcome, {st.session_state.user_name}!</h2>", unsafe_allow_html=True)
     if st.button("Logout"):
         st.session_state.logged_in = False
-        st.session_state.user_uid = None
-        st.rerun()
+        st.experimental_rerun()
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     tab1, tab2 = st.tabs(["🖼️ Classifier", "📊 History"])
 
-    def load_history():
-        if st.session_state.user_uid:
-            history_ref = db.collection("users").document(st.session_state.user_uid).collection("history")
-            docs = (history_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(50).stream())
-            loaded_history = []
-            for doc in docs:
-                data = doc.to_dict()
-                loaded_history.append({
-                    "image": base64.b64decode(data['image_base64']),
-                    "predictions": data['predictions'],
-                    "timestamp": data['timestamp']
-                })
-            st.session_state.history = loaded_history
-
-    def save_to_history(img, pred):
-        if st.session_state.user_uid:
-            buffer = io.BytesIO()
-            img.save(buffer, format="PNG")
-            image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-            history_ref = db.collection("users").document(st.session_state.user_uid).collection("history")
-            history_ref.add({
-                "image_base64": image_base64,
-                "predictions": pred.tolist(),
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            })
-
-    # -------------------- TAB 1: CLASSIFIER --------------------
     with tab1:
         st.image("cow.png", width=80)
         input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
-        input_file = None
-        if input_method == "📁 Upload Image":
-            input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
-        elif input_method == "📸 Use Camera":
-            input_file = st.camera_input("Capture an image")
-
+        input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"]) if input_method=="📁 Upload Image" else st.camera_input("Capture an image")
         if input_file:
             img = Image.open(input_file).convert("RGB")
-            st.image(img, use_container_width=True)
+            st.image(img, use_column_width=True)
             img_array = np.array(img.resize((128,128)), dtype=np.float32)/255.0
             img_array = np.expand_dims(img_array, axis=0)
-
             with st.spinner("Analyzing... 🔍"):
                 try:
-                    pred = model(tf.constant(img_array, dtype=tf.float32))
+                    pred = model(tf.constant(img_array,dtype=tf.float32))
                     if isinstance(pred, dict):
-                        pred = pred.get("dense_1", list(pred.values())[0])
-                    if hasattr(pred, "numpy"):
-                        pred = pred.numpy()
+                        pred = list(pred.values())[0]
+                    if hasattr(pred,"numpy"): pred = pred.numpy()
                     pred = np.array(pred[0])
-                    if pred.size == 0:
-                        st.error("Model returned empty prediction.")
-                    else:
-                        top3 = np.argsort(pred)[-3:][::-1]
-                        cols = st.columns(3)
-                        for col, i in zip(cols, top3):
-                            with col:
-                                st.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
-
-                        if st.checkbox("Show all predictions"):
-                            st.markdown("---")
-                            sorted_idx = np.argsort(pred)[::-1]
-                            half = len(sorted_idx)//2
-                            left_col, right_col = st.columns(2)
-                            for i in sorted_idx[:half]:
-                                left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
-                            for i in sorted_idx[half:]:
-                                right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
-
-                        save_to_history(img, pred)
+                    top3 = np.argsort(pred)[-3:][::-1]
+                    cols = st.columns(3)
+                    for col,i in zip(cols, top3):
+                        col.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
+                    # Save history
+                    import io
+                    from datetime import datetime
+                    buffer = io.BytesIO(); img.save(buffer, format="PNG")
+                    st.session_state.history.append({
+                        "image": buffer.getvalue(),
+                        "predictions": pred.tolist(),
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    })
                 except Exception as e:
                     st.error(f"Prediction error: {e}")
 
-    # -------------------- TAB 2: HISTORY --------------------
     with tab2:
         st.markdown("<h2>📊 Prediction History</h2>", unsafe_allow_html=True)
-        
-        load_history()
-
         if not st.session_state.history:
             st.info("No history yet.")
         else:
             for entry in reversed(st.session_state.history):
-                image_base64 = base64.b64encode(entry["image"]).decode("utf-8") if isinstance(entry["image"], bytes) else entry["image"]
+                img_b64 = base64.b64encode(entry["image"]).decode("utf-8")
                 top3_idx = np.argsort(entry["predictions"])[-3:][::-1]
                 top3_text = ", ".join([f"{classes[int(i)]}: {entry['predictions'][i]*100:.2f}%" for i in top3_idx])
                 st.markdown(f"""
-                <div style='background: rgba(255,255,255,0.1); padding:15px; border-radius:15px; display:flex; align-items:center; margin-bottom:15px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: transform 0.3s ease;' onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
-                    <img src="data:image/png;base64,{image_base64}" width="80" style="border-radius:12px; margin-right:15px;">
-                    <div>
-                        <b>Time:</b> {entry['timestamp']}<br>
-                        <b>Top 3 Predictions:</b> {top3_text}
-                    </div>
+                <div style='background: rgba(255,255,255,0.1); padding:15px; border-radius:15px;
+                            display:flex; align-items:center; margin-bottom:15px; box-shadow:0 5px 15px rgba(0,0,0,0.3);'>
+                    <img src="data:image/png;base64,{img_b64}" width="80" style="border-radius:12px; margin-right:15px;">
+                    <div><b>Time:</b> {entry['timestamp']}<br><b>Top 3 Predictions:</b> {top3_text}</div>
                 </div>
                 """, unsafe_allow_html=True)
