@@ -26,12 +26,20 @@ firebase_config = json.loads(os.environ.get('__firebase_config', '{}'))
 initial_auth_token = os.environ.get('__initial_auth_token', None)
 app_id = os.environ.get('__app_id', 'default-app-id')
 
-if not firebase_admin._apps:
-    cred = credentials.Certificate(firebase_config)
-    firebase_admin.initialize_app(cred, name=app_id)
-
-db = firestore.client(app=firebase_admin.get_app(name=app_id))
-firebase_auth = auth
+# Check if firebase_config is valid before initializing
+if firebase_config:
+    if not firebase_admin._apps:
+        try:
+            cred = credentials.Certificate(firebase_config)
+            firebase_admin.initialize_app(cred, name=app_id)
+            db = firestore.client(app=firebase_admin.get_app(name=app_id))
+            firebase_auth = auth
+        except ValueError as e:
+            st.error(f"Error initializing Firebase: {e}. Please check your service account credentials.")
+            st.stop()
+else:
+    st.error("Firebase credentials not found. Please ensure the environment variables are set correctly.")
+    st.stop()
 
 def add_user(email, password):
     try:
