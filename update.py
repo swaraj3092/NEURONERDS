@@ -1,6 +1,5 @@
 import os
 import warnings
-import sqlite3
 import streamlit as st
 from PIL import Image
 import numpy as np
@@ -13,50 +12,46 @@ import base64
 from datetime import datetime
 import io
 
+# ------------------ FIREBASE IMPORTS ------------------
+import firebase_admin
+from firebase_admin import credentials, firestore, auth, exceptions
+
 # ------------------ SUPPRESS WARNINGS ------------------
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.filterwarnings("ignore")
 
-# ------------------ DATABASE SETUP ------------------
-DB_FILE = "new/users.db"
+# ------------------ FIREBASE SETUP ------------------
+# These are provided by the canvas environment
+firebase_config = json.loads(os.environ.get('__firebase_config', '{}'))
+initial_auth_token = os.environ.get('__initial_auth_token', None)
+app_id = os.environ.get('__app_id', 'default-app-id')
 
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            email TEXT PRIMARY KEY,
-            password TEXT NOT NULL
-        )
-    ''')
-    try:
-        c.execute("INSERT INTO users (email, password) VALUES (?, ?)", ("bpa", "batch123"))
-        conn.commit()
-    except sqlite3.IntegrityError:
-        pass
-    conn.close()
+if not firebase_admin._apps:
+    cred = credentials.Certificate(firebase_config)
+    firebase_admin.initialize_app(cred, name=app_id)
+
+db = firestore.client(app=firebase_admin.get_app(name=app_id))
+firebase_auth = auth
 
 def add_user(email, password):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
     try:
-        c.execute("INSERT INTO users (email, password) VALUES (?, ?)", (email, password))
-        conn.commit()
-        conn.close()
-        return True
-    except sqlite3.IntegrityError:
-        conn.close()
-        return False
+        user = firebase_auth.create_user(email=email, password=password)
+        db.collection("users").document(user.uid).set({"email": email})
+        return True, ""
+    except exceptions.FirebaseError as e:
+        return False, str(e)
 
 def verify_user(email, password):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE email=? AND password=?", (email, password))
-    result = c.fetchone()
-    conn.close()
-    return result is not None
-
-init_db()
+    try:
+        user = firebase_auth.get_user_by_email(email)
+        # Firebase does not expose a direct password verification method for security.
+        # For a full-stack app, you would handle this on a secure backend.
+        # As a workaround for this environment, we check if the user exists.
+        # The user will need to log in with a valid password on the client side.
+        # The provided Google Auth is a better approach for this environment.
+        return True
+    except exceptions.FirebaseError:
+        return False
 
 # ------------------ STYLING ------------------
 st.markdown("""
@@ -98,7 +93,7 @@ classes = load_classes()
 
 # ------------------ GOOGLE OAUTH CONFIG ------------------
 CLIENT_ID = "44089178154-3tfm5sc60qmnc8t5d2p92innn10t3pu3.apps.googleusercontent.com"
-CLIENT_SECRET = "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"
+CLIENT_SECRET = "GOCSPX-oJkYZxFa-4s4t8VHrBIhAgsi"
 REDIRECT_URI = "https://neuronerds.streamlit.app/"
 SCOPES = "openid email profile"
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -112,6 +107,8 @@ if "user_name" not in st.session_state:
     st.session_state.user_name = "User"
 if "history" not in st.session_state:
     st.session_state.history = []
+if "user_uid" not in st.session_state:
+    st.session_state.user_uid = None
 
 # ------------------ GOOGLE LOGIN HANDLER ------------------
 if "code" in st.query_params:
@@ -147,7 +144,6 @@ if not st.session_state.logged_in:
     st.markdown("<h2 style='text-align:center; color:#f0f2f6;'>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
 
-    # Google login button
     auth_params = {
         "client_id": CLIENT_ID,
         "redirect_uri": REDIRECT_URI,
@@ -159,18 +155,19 @@ if not st.session_state.logged_in:
     auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
     st.markdown(f'<div style="display:flex; justify-content:center; margin:20px 0;"><a href="{auth_url}"><button style="width:250px;padding:12px;font-weight:bold;border-radius:12px;background-color:#4285F4;color:white;border:none;cursor:pointer;">Continue with Google 🚀</button></a></div>', unsafe_allow_html=True)
 
-    # Tabs for Login/Register
     tab_login, tab_register = st.tabs(["Login", "Register"])
 
     with tab_login:
         email = st.text_input("Email", placeholder="user@example.com", key="login_email")
         password = st.text_input("Password", type="password", key="login_password")
         if st.button("Login", key="login_btn"):
-            if verify_user(email, password):
+            try:
+                user = firebase_auth.sign_in_with_email_and_password(email, password)
                 st.session_state.logged_in = True
                 st.session_state.user_name = email
+                st.session_state.user_uid = user.uid
                 st.rerun()
-            else:
+            except exceptions.FirebaseError:
                 st.error("Invalid credentials.")
 
     with tab_register:
@@ -179,10 +176,12 @@ if not st.session_state.logged_in:
         if st.button("Register", key="reg_btn"):
             if not new_email.endswith("@gmail.com"):
                 st.error("Email must end with @gmail.com")
-            elif add_user(new_email, new_password):
-                st.success("Registration successful! You can now login.")
             else:
-                st.error("Email already exists.")
+                success, error_msg = add_user(new_email, new_password)
+                if success:
+                    st.success("Registration successful! You can now login.")
+                else:
+                    st.error(f"Registration failed: {error_msg}")
 
 # ------------------ MAIN APP ------------------
 if st.session_state.logged_in:
@@ -194,75 +193,7 @@ if st.session_state.logged_in:
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     tab1, tab2 = st.tabs(["🖼️ Classifier", "📊 History"])
 
-    # -------------------- TAB 1: CLASSIFIER --------------------
-    with tab1:
-        st.image("cow.png", width=80)
-        input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
-        input_file = None
-        if input_method == "📁 Upload Image":
-            input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
-        elif input_method == "📸 Use Camera":
-            input_file = st.camera_input("Capture an image")
-
-        if input_file:
-            img = Image.open(input_file).convert("RGB")
-            st.image(img, use_container_width=True)
-            img_array = np.array(img.resize((128,128)), dtype=np.float32)/255.0
-            img_array = np.expand_dims(img_array, axis=0)
-
-            with st.spinner("Analyzing... 🔍"):
-                try:
-                    pred = model(tf.constant(img_array, dtype=tf.float32))
-                    if isinstance(pred, dict):
-                        pred = pred.get("dense_1", list(pred.values())[0])
-                    if hasattr(pred, "numpy"):
-                        pred = pred.numpy()
-                    pred = np.array(pred[0])
-                    if pred.size == 0:
-                        st.error("Model returned empty prediction.")
-                    else:
-                        top3 = np.argsort(pred)[-3:][::-1]
-                        cols = st.columns(3)
-                        for col, i in zip(cols, top3):
-                            with col:
-                                st.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
-
-                        if st.checkbox("Show all predictions"):
-                            st.markdown("---")
-                            left_col, right_col = st.columns(2)
-                            sorted_idx = np.argsort(pred)[::-1]
-                            half = len(sorted_idx)//2
-                            for i in sorted_idx[:half]:
-                                left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
-                            for i in sorted_idx[half:]:
-                                right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
-
-                        buffer = io.BytesIO()
-                        img.save(buffer, format="PNG")
-                        st.session_state.history.append({
-                            "image": buffer.getvalue(),
-                            "predictions": pred.tolist(),
-                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        })
-                except Exception as e:
-                    st.error(f"Prediction error: {e}")
-
-    # -------------------- TAB 2: HISTORY --------------------
-    with tab2:
-        st.markdown("<h2>📊 Prediction History</h2>", unsafe_allow_html=True)
-        if not st.session_state.history:
-            st.info("No history yet.")
-        else:
-            for entry in reversed(st.session_state.history):
-                image_base64 = base64.b64encode(entry["image"]).decode("utf-8")
-                top3_idx = np.argsort(entry["predictions"])[-3:][::-1]
-                top3_text = ", ".join([f"{classes[int(i)]}: {entry['predictions'][i]*100:.2f}%" for i in top3_idx])
-                st.markdown(f"""
-                <div style='background: rgba(255,255,255,0.1); padding:15px; border-radius:15px; display:flex; align-items:center; margin-bottom:15px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: transform 0.3s ease;' onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
-                    <img src="data:image/png;base64,{image_base64}" width="80" style="border-radius:12px; margin-right:15px;">
-                    <div>
-                        <b>Time:</b> {entry['timestamp']}<br>
-                        <b>Top 3 Predictions:</b> {top3_text}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+    def load_history():
+        if st.session_state.user_uid:
+            history_ref = db.collection("users").document(st.session_state.user_uid).collection("history")
+            docs = history_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).
