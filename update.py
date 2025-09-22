@@ -10,13 +10,15 @@ import json
 import requests
 import urllib.parse
 import base64
+import io
+from datetime import datetime
 
 # ------------------ SUPPRESS WARNINGS ------------------
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.filterwarnings("ignore")
 
 # ------------------ DATABASE INIT ------------------
-DB_PATH = "new/users.db"  # Your db inside 'new' folder
+DB_PATH = "new/users.db"
 
 def init_db():
     os.makedirs("new", exist_ok=True)
@@ -28,7 +30,6 @@ def init_db():
             password TEXT NOT NULL
         )
     ''')
-    # Insert default user if not exists
     try:
         c.execute("INSERT INTO users (email, password) VALUES (?, ?)", ("bpa", "batch123"))
         conn.commit()
@@ -135,6 +136,7 @@ tab_login, tab_register, tab_forgot = st.tabs(["Login","Register","Forgot Passwo
 
 with tab_login:
     st.image("cow.png", width=120)
+    st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     email = st.text_input("Email", placeholder="user@example.com", key="login_email")
     password = st.text_input("Password", type="password", key="login_pass")
     if st.button("Login", key="login_btn"):
@@ -147,6 +149,7 @@ with tab_login:
 
 with tab_register:
     st.image("cow.png", width=120)
+    st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     reg_email = st.text_input("Gmail (must end with @gmail.com)", placeholder="user@gmail.com", key="reg_email")
     reg_pass = st.text_input("Password", type="password", key="reg_pass")
     if st.button("Register", key="reg_btn"):
@@ -159,6 +162,7 @@ with tab_register:
 
 with tab_forgot:
     st.image("cow.png", width=120)
+    st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     f_email = st.text_input("Registered Email", placeholder="user@gmail.com", key="forgot_email")
     new_pass = st.text_input("New Password", type="password", key="forgot_pass")
     if st.button("Reset Password", key="forgot_btn"):
@@ -172,7 +176,7 @@ if st.session_state.logged_in:
     st.markdown(f"<h2>Welcome, {st.session_state.user_name}!</h2>", unsafe_allow_html=True)
     if st.button("Logout"):
         st.session_state.logged_in = False
-        st.experimental_rerun()
+        st.rerun()
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
     tab1, tab2 = st.tabs(["🖼️ Classifier", "📊 History"])
@@ -198,8 +202,6 @@ if st.session_state.logged_in:
                     for col,i in zip(cols, top3):
                         col.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
                     # Save history
-                    import io
-                    from datetime import datetime
                     buffer = io.BytesIO(); img.save(buffer, format="PNG")
                     st.session_state.history.append({
                         "image": buffer.getvalue(),
@@ -220,7 +222,7 @@ if st.session_state.logged_in:
                 top3_text = ", ".join([f"{classes[int(i)]}: {entry['predictions'][i]*100:.2f}%" for i in top3_idx])
                 st.markdown(f"""
                 <div style='background: rgba(255,255,255,0.1); padding:15px; border-radius:15px;
-                            display:flex; align-items:center; margin-bottom:15px; box-shadow:0 5px 15px rgba(0,0,0,0.3);'>
+                             display:flex; align-items:center; margin-bottom:15px; box-shadow:0 5px 15px rgba(0,0,0,0.3);'>
                     <img src="data:image/png;base64,{img_b64}" width="80" style="border-radius:12px; margin-right:15px;">
                     <div><b>Time:</b> {entry['timestamp']}<br><b>Top 3 Predictions:</b> {top3_text}</div>
                 </div>
