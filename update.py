@@ -153,12 +153,15 @@ with tab_register:
     reg_email = st.text_input("Gmail (must end with @gmail.com)", placeholder="user@gmail.com", key="reg_email")
     reg_pass = st.text_input("Password", type="password", key="reg_pass")
     if st.button("Register", key="reg_btn"):
-        if not reg_email.endswith("@gmail.com"):
+        if not reg_email or not reg_pass:
+            st.error("Email and password cannot be empty")
+        elif not reg_email.endswith("@gmail.com"):
             st.error("Email must be a Gmail address ending with @gmail.com")
         elif register_user(reg_email, reg_pass):
             st.success("Registration successful! You can now login.")
         else:
             st.error("Email already exists.")
+
 
 with tab_forgot:
     st.image("cow.png", width=120)
