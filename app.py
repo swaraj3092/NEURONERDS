@@ -226,7 +226,7 @@ if not st.session_state.logged_in:
     email = st.text_input("Email", placeholder="user@example.com")
     password = st.text_input("Password", type="password")
     if st.button("Login"):
-        if email == "bpa" and password == "demo123":  # ✅ password updated
+        if email == "bpa" and password == "batch123":  # ✅ password updated
             st.session_state.logged_in = True
             st.session_state.user_name = email
             st.rerun()
