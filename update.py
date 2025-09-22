@@ -21,24 +21,20 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.filterwarnings("ignore")
 
 # ------------------ FIREBASE SETUP ------------------
-# These are provided by the canvas environment
-firebase_config = json.loads(os.environ.get('__firebase_config', '{}'))
-initial_auth_token = os.environ.get('__initial_auth_token', None)
-app_id = os.environ.get('__app_id', 'default-app-id')
-
-# Check if firebase_config is valid before initializing
-if firebase_config:
+# Load Firebase credentials from Streamlit secrets
+if "firebase" in st.secrets:
+    firebase_config = st.secrets.firebase.firebase_config
     if not firebase_admin._apps:
         try:
             cred = credentials.Certificate(firebase_config)
-            firebase_admin.initialize_app(cred, name=app_id)
-            db = firestore.client(app=firebase_admin.get_app(name=app_id))
+            firebase_admin.initialize_app(cred, name="animal-classifier-app")
+            db = firestore.client(app=firebase_admin.get_app(name="animal-classifier-app"))
             firebase_auth = auth
         except ValueError as e:
             st.error(f"Error initializing Firebase: {e}. Please check your service account credentials.")
             st.stop()
 else:
-    st.error("Firebase credentials not found. Please ensure the environment variables are set correctly.")
+    st.error("Firebase credentials not found. Please ensure a '.streamlit/secrets.toml' file exists with the firebase_config.")
     st.stop()
 
 def add_user(email, password):
