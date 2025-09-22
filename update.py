@@ -135,9 +135,9 @@ tab_login, tab_register, tab_forgot = st.tabs(["Login","Register","Forgot Passwo
 
 with tab_login:
     st.image("cow.png", width=120)
-    email = st.text_input("Email", placeholder="user@example.com")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
+    email = st.text_input("Email", placeholder="user@example.com", key="login_email")
+    password = st.text_input("Password", type="password", key="login_pass")
+    if st.button("Login", key="login_btn"):
         if verify_user(email,password):
             st.session_state.logged_in = True
             st.session_state.user_name = email
@@ -147,9 +147,9 @@ with tab_login:
 
 with tab_register:
     st.image("cow.png", width=120)
-    reg_email = st.text_input("Gmail (must end with @gmail.com)", placeholder="user@gmail.com")
-    reg_pass = st.text_input("Password", type="password")
-    if st.button("Register"):
+    reg_email = st.text_input("Gmail (must end with @gmail.com)", placeholder="user@gmail.com", key="reg_email")
+    reg_pass = st.text_input("Password", type="password", key="reg_pass")
+    if st.button("Register", key="reg_btn"):
         if not reg_email.endswith("@gmail.com"):
             st.error("Email must be a Gmail address ending with @gmail.com")
         elif register_user(reg_email, reg_pass):
@@ -159,9 +159,9 @@ with tab_register:
 
 with tab_forgot:
     st.image("cow.png", width=120)
-    f_email = st.text_input("Registered Email", placeholder="user@gmail.com")
-    new_pass = st.text_input("New Password", type="password")
-    if st.button("Reset Password"):
+    f_email = st.text_input("Registered Email", placeholder="user@gmail.com", key="forgot_email")
+    new_pass = st.text_input("New Password", type="password", key="forgot_pass")
+    if st.button("Reset Password", key="forgot_btn"):
         if reset_password(f_email,new_pass):
             st.success("Password updated successfully!")
         else:
