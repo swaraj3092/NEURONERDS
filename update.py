@@ -21,7 +21,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 warnings.filterwarnings("ignore")
 
 # ------------------ FIREBASE SETUP ------------------
-# Load Firebase credentials from Streamlit secrets
 if "firebase" in st.secrets:
     firebase_config = st.secrets.firebase.firebase_config
     if not firebase_admin._apps:
@@ -36,26 +35,6 @@ if "firebase" in st.secrets:
 else:
     st.error("Firebase credentials not found. Please ensure a '.streamlit/secrets.toml' file exists with the firebase_config.")
     st.stop()
-
-def add_user(email, password):
-    try:
-        user = firebase_auth.create_user(email=email, password=password)
-        db.collection("users").document(user.uid).set({"email": email})
-        return True, ""
-    except exceptions.FirebaseError as e:
-        return False, str(e)
-
-def verify_user(email, password):
-    try:
-        user = firebase_auth.get_user_by_email(email)
-        # Firebase does not expose a direct password verification method for security.
-        # For a full-stack app, you would handle this on a secure backend.
-        # As a workaround for this environment, we check if the user exists.
-        # The user will need to log in with a valid password on the client side.
-        # The provided Google Auth is a better approach for this environment.
-        return True
-    except exceptions.FirebaseError:
-        return False
 
 # ------------------ STYLING ------------------
 st.markdown("""
@@ -137,16 +116,17 @@ if "code" in st.query_params:
                 ).json()
                 st.session_state.logged_in = True
                 st.session_state.user_name = user_info.get("name", "User")
+                st.session_state.user_uid = user_info.get("email")  # 🔑 use email as UID
                 st.experimental_set_query_params()
                 st.rerun()
         except Exception as e:
             st.error(f"An error occurred during authentication: {e}")
 
-# ------------------ LOGIN / REGISTER PAGE ------------------
+# ------------------ LOGIN PAGE ------------------
 if not st.session_state.logged_in:
     st.image("cow.png", width=120)
     st.markdown("<h2 style='text-align:center; color:#f0f2f6;'>Welcome to Animal Classifier</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; color:#ccc;'>Sign in to continue</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; color:#ccc;'>Sign in with Google to continue</p>", unsafe_allow_html=True)
 
     auth_params = {
         "client_id": CLIENT_ID,
@@ -159,39 +139,12 @@ if not st.session_state.logged_in:
     auth_url = f"{AUTH_URI}?{urllib.parse.urlencode(auth_params)}"
     st.markdown(f'<div style="display:flex; justify-content:center; margin:20px 0;"><a href="{auth_url}"><button style="width:250px;padding:12px;font-weight:bold;border-radius:12px;background-color:#4285F4;color:white;border:none;cursor:pointer;">Continue with Google 🚀</button></a></div>', unsafe_allow_html=True)
 
-    tab_login, tab_register = st.tabs(["Login", "Register"])
-
-    with tab_login:
-        email = st.text_input("Email", placeholder="user@example.com", key="login_email")
-        password = st.text_input("Password", type="password", key="login_password")
-        if st.button("Login", key="login_btn"):
-            try:
-                user = firebase_auth.sign_in_with_email_and_password(email, password)
-                st.session_state.logged_in = True
-                st.session_state.user_name = email
-                st.session_state.user_uid = user.uid
-                st.rerun()
-            except exceptions.FirebaseError:
-                st.error("Invalid credentials.")
-
-    with tab_register:
-        new_email = st.text_input("Email (must be @gmail.com)", placeholder="example@gmail.com", key="reg_email")
-        new_password = st.text_input("Password", type="password", key="reg_password")
-        if st.button("Register", key="reg_btn"):
-            if not new_email.endswith("@gmail.com"):
-                st.error("Email must end with @gmail.com")
-            else:
-                success, error_msg = add_user(new_email, new_password)
-                if success:
-                    st.success("Registration successful! You can now login.")
-                else:
-                    st.error(f"Registration failed: {error_msg}")
-
 # ------------------ MAIN APP ------------------
 if st.session_state.logged_in:
     st.markdown(f"<h2>Welcome, {st.session_state.get('user_name','User')}!</h2>", unsafe_allow_html=True)
     if st.button("Logout"):
         st.session_state.logged_in = False
+        st.session_state.user_uid = None
         st.rerun()
 
     st.markdown("<h1>🐾 Animal Type Classifier 🐾</h1>", unsafe_allow_html=True)
@@ -281,7 +234,7 @@ if st.session_state.logged_in:
             st.info("No history yet.")
         else:
             for entry in reversed(st.session_state.history):
-                image_base64 = base64.b64encode(entry["image"]).decode("utf-8")
+                image_base64 = base64.b64encode(entry["image"]).decode("utf-8") if isinstance(entry["image"], bytes) else entry["image"]
                 top3_idx = np.argsort(entry["predictions"])[-3:][::-1]
                 top3_text = ", ".join([f"{classes[int(i)]}: {entry['predictions'][i]*100:.2f}%" for i in top3_idx])
                 st.markdown(f"""
