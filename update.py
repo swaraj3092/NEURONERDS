@@ -196,4 +196,96 @@ if st.session_state.logged_in:
     def load_history():
         if st.session_state.user_uid:
             history_ref = db.collection("users").document(st.session_state.user_uid).collection("history")
-            docs = history_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).
+            docs = (history_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(50).stream())
+            loaded_history = []
+            for doc in docs:
+                data = doc.to_dict()
+                loaded_history.append({
+                    "image": base64.b64decode(data['image_base64']),
+                    "predictions": data['predictions'],
+                    "timestamp": data['timestamp']
+                })
+            st.session_state.history = loaded_history
+
+    def save_to_history(img, pred):
+        if st.session_state.user_uid:
+            buffer = io.BytesIO()
+            img.save(buffer, format="PNG")
+            image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+            history_ref = db.collection("users").document(st.session_state.user_uid).collection("history")
+            history_ref.add({
+                "image_base64": image_base64,
+                "predictions": pred.tolist(),
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
+
+    # -------------------- TAB 1: CLASSIFIER --------------------
+    with tab1:
+        st.image("cow.png", width=80)
+        input_method = st.radio("Select input method:", ["📁 Upload Image", "📸 Use Camera"])
+        input_file = None
+        if input_method == "📁 Upload Image":
+            input_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
+        elif input_method == "📸 Use Camera":
+            input_file = st.camera_input("Capture an image")
+
+        if input_file:
+            img = Image.open(input_file).convert("RGB")
+            st.image(img, use_container_width=True)
+            img_array = np.array(img.resize((128,128)), dtype=np.float32)/255.0
+            img_array = np.expand_dims(img_array, axis=0)
+
+            with st.spinner("Analyzing... 🔍"):
+                try:
+                    pred = model(tf.constant(img_array, dtype=tf.float32))
+                    if isinstance(pred, dict):
+                        pred = pred.get("dense_1", list(pred.values())[0])
+                    if hasattr(pred, "numpy"):
+                        pred = pred.numpy()
+                    pred = np.array(pred[0])
+                    if pred.size == 0:
+                        st.error("Model returned empty prediction.")
+                    else:
+                        top3 = np.argsort(pred)[-3:][::-1]
+                        cols = st.columns(3)
+                        for col, i in zip(cols, top3):
+                            with col:
+                                st.metric(label=classes[int(i)], value=f"{pred[i]*100:.2f}%")
+
+                        if st.checkbox("Show all predictions"):
+                            st.markdown("---")
+                            sorted_idx = np.argsort(pred)[::-1]
+                            half = len(sorted_idx)//2
+                            left_col, right_col = st.columns(2)
+                            for i in sorted_idx[:half]:
+                                left_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+                            for i in sorted_idx[half:]:
+                                right_col.markdown(f"**{classes[int(i)]}:** {pred[i]*100:.4f}%")
+
+                        save_to_history(img, pred)
+                except Exception as e:
+                    st.error(f"Prediction error: {e}")
+
+    # -------------------- TAB 2: HISTORY --------------------
+    with tab2:
+        st.markdown("<h2>📊 Prediction History</h2>", unsafe_allow_html=True)
+        
+        load_history()
+
+        if not st.session_state.history:
+            st.info("No history yet.")
+        else:
+            for entry in reversed(st.session_state.history):
+                image_base64 = base64.b64encode(entry["image"]).decode("utf-8")
+                top3_idx = np.argsort(entry["predictions"])[-3:][::-1]
+                top3_text = ", ".join([f"{classes[int(i)]}: {entry['predictions'][i]*100:.2f}%" for i in top3_idx])
+                st.markdown(f"""
+                <div style='background: rgba(255,255,255,0.1); padding:15px; border-radius:15px; display:flex; align-items:center; margin-bottom:15px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: transform 0.3s ease;' onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+                    <img src="data:image/png;base64,{image_base64}" width="80" style="border-radius:12px; margin-right:15px;">
+                    <div>
+                        <b>Time:</b> {entry['timestamp']}<br>
+                        <b>Top 3 Predictions:</b> {top3_text}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
